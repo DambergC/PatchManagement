@@ -24,3 +24,16 @@ If you need to create one or more Maintance Windows in MECM for a Collection you
   <li>ApplyTo - If you want Any, TaskSequence or Only SoftwareUpdates to be controled by Maintance Window  
 </ol>    
 <p>From your input the script will calculate Patch Tuesday for the month and set start- and endtime for the maintance Window.
+# Send-UpdateStatusMail.ps1
+  The script´s requirement
+- Powershell 7.x
+- Send-MailKitMessage
+- Configuration Manager powershell module ( Run it on siteserver or client with console installed)
+- The server or client where you configure to run the script need to be white-listed in your mailserver to be allowed to send mail.
+# Send-UpdateDeployedMail.ps1
+  The script´s requirement
+- Powershell 7.x
+- Send-MailKitMessage module
+- Configuration Manager powershell module ( Run it on siteserver or client with console installed)
+
+You need to edit row 246 to 276 in the script with your info to the recipients of the mail.
