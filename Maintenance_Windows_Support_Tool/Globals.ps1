@@ -2,9 +2,10 @@
 # Declare Global Variables and Functions here
 #--------------------------------------------
 
-$ApplicationName = "Personec P Update Support Tool - PUST"
-$ApplicationVersion = "1.0"
-$ApplicationLastUpdate = "2022/12/23"
+$ApplicationName = "Maintenance Windows Support Tool"
+$ApplicationVersion = "2.0"
+$ApplicationLastUpdate = "2022/12/25"
+$TodayDate = get-date -Format yyyy-MM-dd
 
 # Author Information
 $AuthorName = "Christian Damberg"
@@ -23,12 +24,12 @@ Function Write-Log
 		[int]$Severity,
 		[string]$Component
 	)
-	$Logpath = "C:\Windows\temp"
+	$Logpath = "C:\Windows\Logs"
 	$TimeZoneBias = Get-CimInstance win32_timezone
 	$Date = Get-Date -Format "HH:mm:ss.fff"
 	$Date2 = Get-Date -Format "MM-dd-yyyy"
 	$Type = 1
-	"<![LOG[$Message]LOG]!><time=$([char]34)$Date$($TimeZoneBias.bias)$([char]34) date=$([char]34)$date2$([char]34) component=$([char]34)$Component$([char]34) context=$([char]34)$([char]34) type=$([char]34)$Severity$([char]34) thread=$([char]34)$([char]34) file=$([char]34)$([char]34)>" | Out-File -FilePath "$Logpath\Set-MaintenanceWindows.log" -Append -NoClobber -Encoding default
+	"<![LOG[$Message]LOG]!><time=$([char]34)$Date$($TimeZoneBias.bias)$([char]34) date=$([char]34)$date2$([char]34) component=$([char]34)$Component$([char]34) context=$([char]34)$([char]34) type=$([char]34)$Severity$([char]34) thread=$([char]34)$([char]34) file=$([char]34)$([char]34)>" | Out-File -FilePath "$Logpath\MaintenanceWindows_$TodayDate.log" -Append -NoClobber -Encoding default
 
 }
 Function Get-CollectionID
