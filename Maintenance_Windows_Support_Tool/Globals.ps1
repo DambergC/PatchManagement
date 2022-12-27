@@ -3,7 +3,7 @@
 #--------------------------------------------
 
 $ApplicationName = "Maintenance Windows Support Tool"
-$ApplicationVersion = "2.0"
+$ApplicationVersion = "2.0.0.0"
 $ApplicationLastUpdate = "2022/12/25"
 $TodayDate = get-date -Format yyyy-MM-dd
 
