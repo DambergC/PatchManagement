@@ -1,11 +1,12 @@
 # PatchManagement
+
 A collection of scripts to automate the process of keeping control over patch managment in MEMCM.
-# Set-ScheduleTaskPatchTuesday.ps1
+## Set-ScheduleTaskPatchTuesday.ps1
 The script´s requirement
 - Powershell 7
 - Send-MailKitMessage
 - Configuration Manager powershell module ( Run it on siteserver or client with console installed)
-# Set-MaintenanceWindows.ps1
+## Set-MaintenanceWindows.ps1
 Script to Create one or more Maintance Windows for a Collection in MECM</b>
 
 If you need to create one or more Maintance Windows in MECM for a Collection you can use this script.
@@ -24,13 +25,18 @@ You will have the following options-
 - ApplyTo - If you want Any, TaskSequence or Only SoftwareUpdates to be controled by Maintance Window  
 
 From your input the script will calculate Patch Tuesday for the month and set start- and endtime for the maintance Window.
-# Send-UpdateStatusMail.ps1
+## Maintenance Windows Support Tool
+![image](https://user-images.githubusercontent.com/16079354/209634515-5acea4d5-d02f-4252-ac93-54a57d74cf90.png)
+
+To make it easier to create Maintenance Windows, I have converted my script to become an application in Powershell Studio from Sapiens.
+You have the same functions as in the script, but instead you work in a GUI.
+## Send-UpdateStatusMail.ps1
   The script´s requirement
 - Powershell 7.x
 - Send-MailKitMessage
 - Configuration Manager powershell module ( Run it on siteserver or client with console installed)
 - The server or client where you configure to run the script need to be white-listed in your mailserver to be allowed to send mail.
-# Send-UpdateDeployedMail.ps1
+## Send-UpdateDeployedMail.ps1
   The script´s requirement
 - Powershell 7.x
 - Send-MailKitMessage module
