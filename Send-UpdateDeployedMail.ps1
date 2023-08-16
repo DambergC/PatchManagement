@@ -1,153 +1,238 @@
-#########################################################
-#.Synopsis
-#  List all updates member of updategroup in x-numbers of days
-#.DESCRIPTION
-#   Lists all assigned software updates in a configuration manager 2012 software update group that is selected 
-#   from the list of available update groups or provided as a command line option
-#.EXAMPLE
-#   Send-UpdateDeployedMail.ps1
-#
-#   Skript created by Christian Damberg
-#   christian@damberg.org
-#   https://www.damberg.org
-#
-#########################################################
-# Values need in script
-#########################################################
-#
-# Numbers of days backwards you want to check for updates in updategroup
-$LimitDays = '-15'
-$SiteCode = '<sitecode>'
-$UpdateGroupName = '<the name of your update group>'
-$MailFrom = '<Your no-reply-address>'
-$Mail_Error = '<Your mail to send when error happens>'
-$Mail_Success = '<Your mail to the mailgroup>'
-$MailSMTP = '<Your SMTP-Server>'
-$MailPortnumber = '25'
-$MailCustomer = 'Name of company'
+<#
+-------------------------------------------------------------------------------------------------------------------------
+.Synopsis
+   Generate htmlpage with Devices and Maintenance Windows
+.DESCRIPTION
+   Script to be run as schedule task on siteserver. It's recommended to be use my script to
+   Generate scheduleTask based on offset from patchTuesday.
 
-#########################################################
-# the function the extract the week number
-#########################################################
-function Get-ISO8601Week (){
-    # Adapted from https://stackoverflow.com/a/43736741/444172
-      [CmdletBinding()]
-      param(
-        [Parameter(
-          ValueFromPipeline                =  $true,
-          ValueFromPipelinebyPropertyName  =  $true
-        )]                                           [datetime]  $DateTime
-      )
-      process {
-        foreach ($_DateTime in $DateTime) {
-          $_ResultObject   =  [pscustomobject]  @{
-            Year           =  $null
-            WeekNumber     =  $null
-            WeekString     =  $null
-            DateString     =  $_DateTime.ToString('yyyy-MM-dd   dddd')
-          }
-          $_DayOfWeek      =  $_DateTime.DayOfWeek.value__
+   https://github.com/DambergC/PatchManagement/blob/main/Set-ScheduleTaskPatchTuesday.ps1
+
+   The script generate a html-page and if you use the send-mailkitmessage it will send a mail
+   to a group of administrators with info about the Maintenace Windows for a devices in a 
+   collection.
+.EXAMPLE
+   Show-DeviceMaintenanceWindows.ps1
+.Version
+   0.0.9    Development only
+.DISCLAIMER
+All scripts and other Powershell references are offered AS IS with no warranty.
+These script and functions are tested in my environment and it is recommended that you test these scripts in a test environment before using in your production environment.
+-------------------------------------------------------------------------------------------------------------------------
+#>
+
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Parameters needed to be assigned
+-------------------------------------------------------------------------------------------------------------------------
+#>
+# Date section
+$today = Get-Date
+$checkdatestart = $today.AddDays(-10)
+$checkdateend = $today.AddDays(30)
+$filedate = get-date -Format yyyMMdd
+$TitleDate = get-date -DisplayHint Date
+$counter = 0
+$HTMLFileSavePath = "c:\temp\KVV_MW_$filedate.HTML"
+$HTMLHeadline = "Kriminalvården - Maintenance Windows $TitleDate"
+$SMTP = 'smtp.kvv.se'
+$MailFrom = 'no-reply@kvv.se'
+$MailTo = 'christian.damberg@kriminalvarden.se'
+$MailPortnumber = '25'
+$MailCustomer = 'Kriminalvården - IT'
+#$collectionidToCheck = 'PS100056'
+$collectionidToCheck = 'PS10007B' <# TEST TEST TEST #>
+$siteserver = 'vntsql0081'
+
+
+<# 
+-------------------------------------------------------------------------------------------------------------------------
+Required Modules (installed offline under c:\program files\Windowspowershell\Modules
+
+Guide - https://johnnycase.github.io/post/2021/05/17/pwrshl-module-offline.html
+
+Send-MailkitMessage - https://www.powershellgallery.com/packages/Send-MailKitMessage/3.2.0
+
+psWriteHTML - https://www.powershellgallery.com/packages/PSWriteHTML/1.2.0
+-------------------------------------------------------------------------------------------------------------------------
+#>
+Import-Module send-mailkitmessage
+import-module PSWriteHTML
+
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Functions needed in script
+-------------------------------------------------------------------------------------------------------------------------
+#>
+# Get cmmodule and install it
+function Get-CMModule {
+    [CmdletBinding()]
+    param()
     
-          # In the underlying object, Sunday is always 0 (Monday = 1, ..., Saturday = 6) irrespective of the FirstDayOfWeek settings (Sunday/Monday)
-          # Since ISO 8601 week date (https://en.wikipedia.org/wiki/ISO_week_date) is Monday-based, flipping Sunday to 7 and switching to one-based numbering.
-          if ($_DayOfWeek  -eq  0) {
-            $_DayOfWeek =    7
-          }
-    
-          # Find the Thursday from this week:
-          #     E.g.: If original date is a Sunday, January 1st     , will find     Thursday, December 29th     from the previous year.
-          #     E.g.: If original date is a Monday, December 31st   , will find     Thursday, January 3rd       from the next year.
-          $_DateTime                 =  $_DateTime.AddDays((4  -  $_DayOfWeek))
-    
-          # The above Thursday it's the Nth Thursday from it's own year, wich is also the ISO 8601 Week Number
-          $_ResultObject.WeekNumber  =  [math]::Ceiling($_DateTime.DayOfYear    /   7)
-          $_ResultObject.Year        =  $_DateTime.Year
-    
-          # The format requires the ISO week-numbering year and numbers are zero-left-padded (https://en.wikipedia.org/wiki/ISO_8601#General_principles)
-          # It's also easier to debug this way :)
-          $_ResultObject.WeekString  =  "$($_DateTime.Year)-W$("$($_ResultObject.WeekNumber)".PadLeft(2,  '0'))"
-          Write-Output                  $_ResultObject
+    Try {
+        Write-Verbose "Trying to import SCCM Module"
+        Import-Module (Join-Path $(Split-Path $ENV:SMS_ADMIN_UI_PATH) ConfigurationManager.psd1) -Verbose:$false
+        Write-Verbose "Nice...imported the SCCM Module"
         }
-      }
+    Catch 
+        {
+        Throw "Failure to import SCCM Cmdlets."
+        } 
+}
+
+Get-CMModule
+
+# Get the sitecode
+function Get-CMSiteCode {
+    $CMSiteCode = Get-WmiObject -Namespace "root\SMS" -Class SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
+    return $CMSiteCode
+}
+
+# Get the month patchtuesday
+Function Get-PatchTuesday ($Month,$Year)  
+ { 
+    $FindNthDay=2 #Aka Second occurence 
+    $WeekDay='Tuesday' 
+    $todayM=($Month).ToString()
+    $todayY=($Year).ToString()
+    $StrtMonth=$todayM+'/1/'+$todayY 
+    [datetime]$StrtMonth=$todayM+'/1/'+$todayY 
+    while ($StrtMonth.DayofWeek -ine $WeekDay ) { $StrtMonth=$StrtMonth.AddDays(1) } 
+    $PatchDay=$StrtMonth.AddDays(7*($FindNthDay-1)) 
+    return $PatchDay
+    Write-Log -Message "Patch Tuesday this month is $PatchDay" -Severity 1 -Component "Set Patch Tuesday"
+   Write-Output "Patch Tuesday this month is $PatchDay"
+ } 
+
+# Get all collections for a Device
+function Get-CMClientDeviceCollectionMembership {
+    [CmdletBinding()]
+    param (
+        [string]$ComputerName = $env:COMPUTERNAME,
+        [string]$SiteServer = (Get-WmiObject -Namespace root\ccm -ClassName SMS_Authority).CurrentManagementPoint,
+        [string]$SiteCode = (Get-WmiObject -Namespace root\ccm -ClassName SMS_Authority).Name.Split(':')[1],
+        [switch]$Summary,
+        [System.Management.Automation.PSCredential]$Credential = [System.Management.Automation.PSCredential]::Empty
+    )
+
+begin {}
+process {
+    Write-Verbose -Message "Gathering collection membership of $ComputerName from Site Server $SiteServer using Site Code $SiteCode."
+    $Collections = Get-WmiObject -ComputerName $SiteServer -Namespace root/SMS/site_$SiteCode -Credential $Credential -Query "SELECT SMS_Collection.* FROM SMS_FullCollectionMembership, SMS_Collection where name = '$ComputerName' and SMS_FullCollectionMembership.CollectionID = SMS_Collection.CollectionID"
+    if ($Summary) {
+        $Collections | Select-Object -Property Name,CollectionID
+    }
+    else {
+        $Collections    
+    }
+    
+}
+end {}
+}
+
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Script part 1 collect info from selected collection and check devices membership in Collections with Maintenance Windows
+-------------------------------------------------------------------------------------------------------------------------
+#>
+
+# Array to collect data in
+$ResultColl = @()
+
+# Devices
+$devices = Get-CMCollectionMember -CollectionId $collectionidToCheck
+
+
+# For the progressbar
+$complete = 0
+
+$scriptstart = (get-date).Second
+
+# Loop for each device
+foreach ($device in $devices)
+        
+        {
+            $counter++
+            Write-Progress -Activity 'Processing computer' -CurrentOperation $device.Name -PercentComplete (($counter / $devices.count)*100)
+            Start-Sleep -Milliseconds 100
+
+            # Get all Collections for Device
+            $collectionids = Get-CMClientDeviceCollectionMembership -ComputerName $device.name
+
+            # Check every Collection for Maintenance windows
+            foreach ($collectionid in $collectionids)
+            {
+
+                # Only include Collections with Maintenance Windows
+                 if ($collectionid.ServiceWindowsCount -gt 0) 
+                 {
+                    $MWs = Get-CMMaintenanceWindow -CollectionId $collectionid.CollectionID
+
+                            foreach ($mw in $MWs)
+
+                            {
+                                # Only show Maintenance Windows waiting to run
+                                if ($mw.StartTime -gt $checkdatestart -and $mw.StartTime -lt $checkdateend)
+                                {
+
+                                $object = New-Object -TypeName PSObject
+                                $object | Add-Member -MemberType NoteProperty -Name 'Device' -Value $device.name
+                                $object | Add-Member -MemberType NoteProperty -Name 'Collection-Name' -Value $collectionid.name
+                                $object | Add-Member -MemberType NoteProperty -Name 'StartTime' -Value $mw.StartTime
+                                $object | Add-Member -MemberType NoteProperty -Name 'Duration' -Value $mw.Duration
+          
+                                $resultColl += $object
+                                }
+                            }
+                    }
+            }
+        }
+
+$scriptstop = (get-date).Second
+
+
+
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Script part 2 Create the html-file to be distributed
+-------------------------------------------------------------------------------------------------------------------------
+#>
+
+New-HTML -TitleText "Maintenance Windows - Kriminalvården" -FilePath $HTMLFileSavePath -ShowHTML -Online {
+
+    New-HTMLHeader {
+        New-HTMLSection -Invisible {
+            New-HTMLPanel -Invisible {
+                New-HTMLText -Text $HTMLFileHeadLine -FontSize 35 -Color Darkblue -FontFamily Arial -Alignment center
+                New-HTMLHorizontalLine
+            }
+        }
     }
 
-#########################################################
-# Section to extract monthname, year and weeknumbers
-#########################################################
+    New-HTMLSection -Invisible -Title "Maintenance Windows $filedate"{
 
-$monthname = (Get-Culture).DateTimeFormat.GetMonthName((get-date).month)
-$year = (get-date).Year
-$week = Get-ISO8601Week (get-date)
-$nextweek = Get-ISO8601Week (get-date).AddDays(7)
-$weeknumber = $week.weeknumber
-$nextweeknumber = $nextweek.weeknumber
+        New-HTMLTable -DataTable $ResultColl -PagingLength 25
+    }
 
-#########################################################
-#Calculate the numbers of days from todays date
-#########################################################
-$limit = (get-date).AddDays($LimitDays)
+    New-HTMLFooter {
+    
+        New-HTMLSection -Invisible {
 
-#########################################################
-# Get the powershell module for MEMCM 
-# and Send-Mailkitmessage
-#########################################################
-if (-not(Get-Module -name ConfigurationManager)) {
-    Import-Module ($Env:SMS_ADMIN_UI_PATH.Substring(0,$Env:SMS_ADMIN_UI_PATH.Length-5) + '\ConfigurationManager.psd1')
+                    New-HTMLPanel -Invisible {
+                New-HTMLHorizontalLine
+                New-HTMLText -Text "Denna lista skapades $today" -FontSize 20 -Color Darkblue -FontFamily Arial -Alignment center -FontStyle italic
+            }
+            
+        }
+    }
 }
 
-if (-not(Get-Module -name send-mailkitmessage)) {
-    Install-Module send-mailkitmessage
-    Import-Module send-mailkitmessage
-}
 
-#########################################################
-# To run the script you must be on ps-drive for MEMCM
-#########################################################
-Push-Location
-Set-Location $SiteCode
-
-#########################################################
-# Array to collect result
-#########################################################
-$Result = @()
-
-#########################################################
-# Gather all updates in updategrpup
-#########################################################
-$updates = Get-CMSoftwareUpdate -Fast -UpdateGroupName $UpdateGroupName
-
-Write-host "Processing Software Update Group" $UpdateGroupName
-
-forEach ($item in $updates)
-{
-    $object = New-Object -TypeName PSObject
-    $object | Add-Member -MemberType NoteProperty -Name ArticleID -Value $item.ArticleID
-    #$object | Add-Member -MemberType NoteProperty -Name BulletinID -Value $item.BulletinID
-    $object | Add-Member -MemberType NoteProperty -Name Title -Value $item.LocalizedDisplayName
-    $object | Add-Member -MemberType NoteProperty -Name LocalizedDescription -Value $item.LocalizedDescription
-    $object | Add-Member -MemberType NoteProperty -Name DatePosted -Value $item.Dateposted
-    $object | Add-Member -MemberType NoteProperty -Name Deployed -Value $item.IsDeployed
-    $object | Add-Member -MemberType NoteProperty -Name 'URL' -Value $item.LocalizedInformativeURL
-    $object | Add-Member -MemberType NoteProperty -Name 'Required' -Value $item.NumMissing
-    $object | Add-Member -MemberType NoteProperty -Name 'Installed' -Value $item.NumPresent
-    $object | Add-Member -MemberType NoteProperty -Name 'Severity' -Value $item.SeverityName
-    $result += $object
-}
-
-#########################################################
-# Create a row in the email to present numbers of updates
-#########################################################
-#$Numbersofupdates = "Totalt antal patchar från Microsoft som finns i Uppdateringspaketet " + $UpdateGroupName + " = " + $result.count
-$Numbersofupdates = "Total numbers of updates from Microsoft that exist in updatepackage " + $UpdateGroupName + " = " + $result.count
-
-#########################################################
-# Create the list of updates sorted and only in the limit
-#########################################################
-$UpdatesFound = $result | Sort-Object dateposted -Descending | where-object { $_.dateposted -ge $limit }
-
-#########################################################
-# CSS HTML
-#########################################################
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    CSS and HTML for mail thru Send-MailKitMessage
+-------------------------------------------------------------------------------------------------------------------------
+#>
 $header = @"
 <style>
 
@@ -202,81 +287,50 @@ $header = @"
 </style>
 "@
 
-################################################################
-# Check if the downloaded updates in the limit are zero or not
-################################################################
-if ($UpdatesFound -eq $null )
-{
-    write-host "No updates downloaded or deployed since $limit"
-
-
-    #Emailsettings when updates equals none
-    $EmailTo = $Mail_Error
-    
-    
-
-    $UpdatesFound = @"
-    <br>
-<img src='cid:logo.png' height="50">
-<br>
-    <B>No updates downloaded or deployed since $limit</B><br><br>
-    <p></p>
-<p>Action needed from third-line support</p>
-"@
-}
-
-else 
-
-{
-
-#########################################################    
-# Text added to mail before list of patches
-#########################################################
-
-#########################################################
-# Emailsettings when updates more then one downloaded
-#########################################################
-$EmailTo = $Mail_Success
-
-#########################################################
-# The top of the email
-#########################################################
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Top of the mail
+-------------------------------------------------------------------------------------------------------------------------
+#>
 $pre = @"
-<br>
-<img src='cid:logo.png' height="50">
-<br>
-<p><b>New updates!</b><br> 
-<p>Updates will be available from wednesday week $weeknumber kl.15.00</p>
-<p><b>Schema</b><br>
-<p>The updates will be installed as follows:</p>
-<p><ol>Test - Week $weeknumber - Every night between 03.00 - 08:00 (If any updates are published)</ol></p>
-<p><ol>Prod - Week $nextweeknumber - Majority will be installed saturday 11.00pm till Sunday 09.00am</ol></p>
-<p><ol>AX - Managed manually by the administration.</ol></p>
-<p><b>Patchar From Microsoft</b><br>
-<p>The following updates are downloaded and published in updategroup <b><i>$UpdateGroupName</i></b> since $limit</p>
-<p>$Numbersofupdates</p>
+
+<p><b>Server Maintenance Windows - List</b><br> 
+
 "@
 
-#########################################################
-# Footer of the email
-#########################################################
+
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Body of Mail
+-------------------------------------------------------------------------------------------------------------------------
+#>
+$Body = @"
+
+<p><b>Script runtime ($scriptstop - $scriptstart) seconds</b><br></p> 
+
+"@
+
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Footer of the mail
+-------------------------------------------------------------------------------------------------------------------------
+#>
 $post = @"
-<p>Raport created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
+<p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
 <p>Script created by:<br><a href="mailto:Your Email">Your name</a><br>
 <a href="https://your blog">your description of your blog</a>
 "@
 
-##########################################################################################
-# Mail with pre and post converted to Variable later used to send with send-mailkitmessage
-##########################################################################################
-$UpdatesFound = $result | Sort-Object dateposted -Descending | where-object { $_.dateposted -ge $limit }| ConvertTo-Html -Title "Downloaded patches" -PreContent $pre -PostContent $post -Head $header
 
-}
 
-#########################################################
-# Mailsettings
-# using module Send-MailKitMessage
-#########################################################
+$Body | ConvertTo-Html -Title "rrrrrrr" -PreContent $pre -PostContent $post -Head $header
+
+<#
+
+-------------------------------------------------------------------------------------------------------------------------
+    Mailsettings, using module Send-MailKitMessage
+-------------------------------------------------------------------------------------------------------------------------
+#>
 
 #use secure connection if available ([bool], optional)
 $UseSecureConnectionIfAvailable=$false
@@ -285,7 +339,7 @@ $UseSecureConnectionIfAvailable=$false
 $Credential=[System.Management.Automation.PSCredential]::new("Username", (ConvertTo-SecureString -String "Password" -AsPlainText -Force))
 
 #SMTP server ([string], required)
-$SMTPServer=$MailSMTP
+$SMTPServer=$SMTP
 
 #port ([int], required)
 $Port=$MailPortnumber
@@ -295,7 +349,7 @@ $From=[MimeKit.MailboxAddress]$MailFrom
 
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList=[MimeKit.InternetAddressList]::new()
-$RecipientList.Add([MimeKit.InternetAddress]$MasailTo)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo)
 
 
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
@@ -308,27 +362,19 @@ $RecipientList.Add([MimeKit.InternetAddress]$MasailTo)
 $BCCList=[MimeKit.InternetAddressList]::new()
 $BCCList.Add([MimeKit.InternetAddress]"BCCRecipient1EmailAddress")
 
-# Different subject depending on result of search for patches.
-if ($UpdatesFound -ne $null )
-{
+
 #subject ([string], required)
 $Subject=[string]"Serverpatchning $MailCustomer $monthname $year"
-}
-else 
-{
-#subject ([string], required)
-$Subject=[string]"Error Error - Action needed $(get-date)"    
-}
 
 #text body ([string], optional)
 #$TextBody=[string]"TextBody"
 
 #HTML body ([string], optional)
-$HTMLBody=[string]$UpdatesFound
+$HTMLBody=[string]$Body
 
 #attachment list ([System.Collections.Generic.List[string]], optional)
 $AttachmentList=[System.Collections.Generic.List[string]]::new()
-$AttachmentList.Add("$PSScriptRoot\logo.png")
+$AttachmentList.Add("$HTMLFileSavePath")
 
 # Mailparameters
 $Parameters=@{
@@ -345,7 +391,9 @@ $Parameters=@{
     "HTMLBody"=$HTMLBody
     "AttachmentList"=$AttachmentList
 }
-#########################################################
-#send email
-#########################################################
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Send Mail
+-------------------------------------------------------------------------------------------------------------------------
+#>
 Send-MailKitMessage @Parameters
