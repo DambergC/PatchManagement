@@ -13,6 +13,8 @@
    collection.
 .EXAMPLE
    Show-DeviceMaintenanceWindows.ps1
+.Version
+   0.0.9    Development only
 .DISCLAIMER
 All scripts and other Powershell references are offered AS IS with no warranty.
 These script and functions are tested in my environment and it is recommended that you test these scripts in a test environment before using in your production environment.
@@ -33,9 +35,9 @@ $TitleDate = get-date -DisplayHint Date
 $counter = 0
 $HTMLFileSavePath = "c:\temp\KVV_MW_$filedate.HTML"
 $HTMLHeadline = "Kriminalvården - Maintenance Windows $TitleDate"
-$SMTPServer = 'smtp.kvv.se'
+$SMTP = 'smtp.kvv.se'
 $MailFrom = 'no-reply@kvv.se'
-$MailTo = '<Your mail to the mailgroup>'
+$MailTo = 'christian.damberg@kriminalvarden.se'
 $MailPortnumber = '25'
 $MailCustomer = 'Kriminalvården - IT'
 #$collectionidToCheck = 'PS100056'
@@ -144,6 +146,8 @@ $devices = Get-CMCollectionMember -CollectionId $collectionidToCheck
 # For the progressbar
 $complete = 0
 
+$scriptstart = (get-date).Second
+
 # Loop for each device
 foreach ($device in $devices)
         
@@ -183,6 +187,10 @@ foreach ($device in $devices)
                     }
             }
         }
+
+$scriptstop = (get-date).Second
+
+
 
 <#
 -------------------------------------------------------------------------------------------------------------------------
@@ -285,19 +293,21 @@ $header = @"
 -------------------------------------------------------------------------------------------------------------------------
 #>
 $pre = @"
-<br>
-<img src='cid:logo.png' height="50">
-<br>
-<p><b>New updates!</b><br> 
-<p>Updates will be available from wednesday week $weeknumber kl.15.00</p>
-<p><b>Schema</b><br>
-<p>The updates will be installed as follows:</p>
-<p><ol>Test - Week $weeknumber - Every night between 03.00 - 08:00 (If any updates are published)</ol></p>
-<p><ol>Prod - Week $nextweeknumber - Majority will be installed saturday 11.00pm till Sunday 09.00am</ol></p>
-<p><ol>AX - Managed manually by the administration.</ol></p>
-<p><b>Patchar From Microsoft</b><br>
-<p>The following updates are downloaded and published in updategroup <b><i>$UpdateGroupName</i></b> since $limit</p>
-<p>$Numbersofupdates</p>
+
+<p><b>Server Maintenance Windows - List</b><br> 
+
+"@
+
+
+<#
+-------------------------------------------------------------------------------------------------------------------------
+    Body of Mail
+-------------------------------------------------------------------------------------------------------------------------
+#>
+$Body = @"
+
+<p><b>Script runtime ($scriptstop - $scriptstart) seconds</b><br></p> 
+
 "@
 
 <#
@@ -306,12 +316,17 @@ $pre = @"
 -------------------------------------------------------------------------------------------------------------------------
 #>
 $post = @"
-<p>Raport created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
+<p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
 <p>Script created by:<br><a href="mailto:Your Email">Your name</a><br>
 <a href="https://your blog">your description of your blog</a>
 "@
 
+
+
+$Body | ConvertTo-Html -Title "rrrrrrr" -PreContent $pre -PostContent $post -Head $header
+
 <#
+
 -------------------------------------------------------------------------------------------------------------------------
     Mailsettings, using module Send-MailKitMessage
 -------------------------------------------------------------------------------------------------------------------------
@@ -324,7 +339,7 @@ $UseSecureConnectionIfAvailable=$false
 $Credential=[System.Management.Automation.PSCredential]::new("Username", (ConvertTo-SecureString -String "Password" -AsPlainText -Force))
 
 #SMTP server ([string], required)
-$SMTPServer=$MailSMTP
+$SMTPServer=$SMTP
 
 #port ([int], required)
 $Port=$MailPortnumber
@@ -334,7 +349,7 @@ $From=[MimeKit.MailboxAddress]$MailFrom
 
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList=[MimeKit.InternetAddressList]::new()
-$RecipientList.Add([MimeKit.InternetAddress]$MasailTo)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo)
 
 
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
@@ -347,27 +362,19 @@ $RecipientList.Add([MimeKit.InternetAddress]$MasailTo)
 $BCCList=[MimeKit.InternetAddressList]::new()
 $BCCList.Add([MimeKit.InternetAddress]"BCCRecipient1EmailAddress")
 
-# Different subject depending on result of search for patches.
-if ($UpdatesFound -ne $null )
-{
+
 #subject ([string], required)
 $Subject=[string]"Serverpatchning $MailCustomer $monthname $year"
-}
-else 
-{
-#subject ([string], required)
-$Subject=[string]"Error Error - Action needed $(get-date)"    
-}
 
 #text body ([string], optional)
 #$TextBody=[string]"TextBody"
 
 #HTML body ([string], optional)
-$HTMLBody=[string]$UpdatesFound
+$HTMLBody=[string]$Body
 
 #attachment list ([System.Collections.Generic.List[string]], optional)
 $AttachmentList=[System.Collections.Generic.List[string]]::new()
-$AttachmentList.Add("$PSScriptRoot\logo.png")
+$AttachmentList.Add("$HTMLFileSavePath")
 
 # Mailparameters
 $Parameters=@{
