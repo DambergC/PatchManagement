@@ -21,11 +21,8 @@ These script and functions are tested in my environment and it is recommended th
 -------------------------------------------------------------------------------------------------------------------------
 #>
 
-<#
--------------------------------------------------------------------------------------------------------------------------
-    Parameters needed to be assigned
--------------------------------------------------------------------------------------------------------------------------
-#>
+#Region Parameters
+
 # Date section
 $today = Get-Date
 $checkdatestart = $today.AddDays(-10)
@@ -44,6 +41,9 @@ $MailCustomer = 'Kriminalvården - IT'
 $collectionidToCheck = 'PS10007B' <# TEST TEST TEST #>
 $siteserver = 'vntsql0081'
 
+#endregion
+
+#region modules
 
 <# 
 -------------------------------------------------------------------------------------------------------------------------
@@ -59,11 +59,10 @@ psWriteHTML - https://www.powershellgallery.com/packages/PSWriteHTML/1.2.0
 Import-Module send-mailkitmessage
 import-module PSWriteHTML
 
-<#
--------------------------------------------------------------------------------------------------------------------------
-    Functions needed in script
--------------------------------------------------------------------------------------------------------------------------
-#>
+#endregion
+
+#Region Functions needed in script
+
 # Get cmmodule and install it
 function Get-CMModule {
     [CmdletBinding()]
@@ -130,11 +129,9 @@ process {
 end {}
 }
 
-<#
--------------------------------------------------------------------------------------------------------------------------
-    Script part 1 collect info from selected collection and check devices membership in Collections with Maintenance Windows
--------------------------------------------------------------------------------------------------------------------------
-#>
+#endregion
+
+#Region Script part 1 collect info from selected collection and check devices membership in Collections with Maintenance Windows
 
 # Array to collect data in
 $ResultColl = @()
@@ -190,13 +187,9 @@ foreach ($device in $devices)
 
 $scriptstop = (get-date).Second
 
+#endregion
 
-
-<#
--------------------------------------------------------------------------------------------------------------------------
-    Script part 2 Create the html-file to be distributed
--------------------------------------------------------------------------------------------------------------------------
-#>
+#region Script part 2 Create the html-file to be distributed
 
 New-HTML -TitleText "Maintenance Windows - Kriminalvården" -FilePath $HTMLFileSavePath -ShowHTML -Online {
 
@@ -227,13 +220,11 @@ New-HTML -TitleText "Maintenance Windows - Kriminalvården" -FilePath $HTMLFileS
     }
 }
 
+#endregion
 
-<#
--------------------------------------------------------------------------------------------------------------------------
-    CSS and HTML for mail thru Send-MailKitMessage
--------------------------------------------------------------------------------------------------------------------------
-#>
-$header = @"
+#Region CSS and HTML for mail thru Send-MailKitMessage
+
+$style = @"
 <style>
 
     th {
@@ -287,50 +278,36 @@ $header = @"
 </style>
 "@
 
-<#
--------------------------------------------------------------------------------------------------------------------------
-    Top of the mail
--------------------------------------------------------------------------------------------------------------------------
-#>
-$pre = @"
+#endregion
+
+#Region HTML Mail
+
+$header = @"
 
 <p><b>Server Maintenance Windows - List</b><br> 
 
 "@
 
 
-<#
--------------------------------------------------------------------------------------------------------------------------
-    Body of Mail
--------------------------------------------------------------------------------------------------------------------------
-#>
 $Body = @"
 
 <p><b>Script runtime ($scriptstop - $scriptstart) seconds</b><br></p> 
 
 "@
 
-<#
--------------------------------------------------------------------------------------------------------------------------
-    Footer of the mail
--------------------------------------------------------------------------------------------------------------------------
-#>
+
 $post = @"
 <p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
 <p>Script created by:<br><a href="mailto:Your Email">Your name</a><br>
 <a href="https://your blog">your description of your blog</a>
 "@
 
+ConvertTo-Html -Title "rrrrrrr" -PreContent $pre -PostContent $post -Head $header -Body $body
 
+#endregion
 
-$Body | ConvertTo-Html -Title "rrrrrrr" -PreContent $pre -PostContent $post -Head $header
+#Region Mailsettings
 
-<#
-
--------------------------------------------------------------------------------------------------------------------------
-    Mailsettings, using module Send-MailKitMessage
--------------------------------------------------------------------------------------------------------------------------
-#>
 
 #use secure connection if available ([bool], optional)
 $UseSecureConnectionIfAvailable=$false
@@ -391,9 +368,11 @@ $Parameters=@{
     "HTMLBody"=$HTMLBody
     "AttachmentList"=$AttachmentList
 }
-<#
--------------------------------------------------------------------------------------------------------------------------
-    Send Mail
--------------------------------------------------------------------------------------------------------------------------
-#>
+
+#endregion
+
+#Region Send Mail
+
 Send-MailKitMessage @Parameters
+
+#endregion
