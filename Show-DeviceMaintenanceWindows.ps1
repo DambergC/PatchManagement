@@ -13,7 +13,7 @@
    collection.
 .EXAMPLE
    Show-DeviceMaintenanceWindows.ps1
-.Version
+.VERSION
    0.0.9    Development only
 .DISCLAIMER
 All scripts and other Powershell references are offered AS IS with no warranty.
