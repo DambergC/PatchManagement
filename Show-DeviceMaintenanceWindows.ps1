@@ -288,6 +288,88 @@ $header = @"
 
 "@
 
+$Body2 = @"
+
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Server Mainenance Windows - Kriminalvården</title>
+<style>
+
+    th {
+
+        font-family: Arial, Helvetica, sans-serif;
+        color: White;
+        font-size: 12px;
+        border: 1px solid black;
+        padding: 3px;
+        background-color: Black;
+
+    } 
+    p {
+
+        font-family: Arial, Helvetica, sans-serif;
+        color: black;
+        font-size: 12px;
+
+    } 
+    ol {
+
+        font-family: Arial, Helvetica, sans-serif;
+        list-style-type: square;
+        color: black;
+        font-size: 12px;
+
+    }
+	    H1 {
+
+        font-family: Arial, Helvetica, sans-serif;
+        color: black;
+        font-size: 18px;
+
+    }
+    tr {
+
+        font-family: Arial, Helvetica, sans-serif;
+        color: black;
+        font-size: 11px;
+        vertical-align: text-top;
+
+    } 
+
+    body {
+        background-color: lightgray;
+      }
+      table {
+        border: 1px solid black;
+        border-collapse: collapse;
+      }
+
+      td {
+        border: 1px solid black;
+        padding: 5px;
+        background-color: #E0F3F7;
+      }
+
+</style>
+</head>
+
+<body>
+	<p><h1>Server Maintenance Windows - List</h1></p> 
+	<p><b>Script runtime ($scriptstop - $scriptstart) seconds</b><br></p> 
+	<p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
+	<p>Script created by:<br><a href="mailto:Your Email">Your name</a><br></p>
+	<p><a href="https://your blog">your description of your blog</a></p>
+	
+	
+	
+</body>
+</html>
+ 
+
+"@
+
 
 $Body = @"
 
