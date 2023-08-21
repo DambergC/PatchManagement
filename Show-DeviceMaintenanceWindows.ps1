@@ -21,51 +21,9 @@ These script and functions are tested in my environment and it is recommended th
 -------------------------------------------------------------------------------------------------------------------------
 #>
 
-#Region Parameters
 
-# Date section
-$today = Get-Date
+#region Functions needed in script
 
-
-$checkdatestart = Get-PatchTuesday -Month $today.Month -Year $today.Year
-$checkdateend = $today.AddDays(30)
-$filedate = get-date -Format yyyMMdd
-$TitleDate = get-date -DisplayHint Date
-$counter = 0
-$HTMLFileSavePath = "c:\temp\KVV_MW_$filedate.HTML"
-$HTMLHeadline = "Kriminalvården - Maintenance Windows $TitleDate"
-$SMTP = 'smtp.kvv.se'
-$MailFrom = 'no-reply@kvv.se'
-$MailTo = 'christian.damberg@kriminalvarden.se'
-$MailPortnumber = '25'
-$MailCustomer = 'Kriminalvården - IT'
-#$collectionidToCheck = 'PS100056'
-$collectionidToCheck = 'PS10007B' <# TEST TEST TEST #>
-$siteserver = 'vntsql0081'
-
-#endregion
-
-#region modules
-
-<# 
--------------------------------------------------------------------------------------------------------------------------
-Required Modules (installed offline under c:\program files\Windowspowershell\Modules
-
-Guide - https://johnnycase.github.io/post/2021/05/17/pwrshl-module-offline.html
-
-Send-MailkitMessage - https://www.powershellgallery.com/packages/Send-MailKitMessage/3.2.0
-
-psWriteHTML - https://www.powershellgallery.com/packages/PSWriteHTML/1.2.0
--------------------------------------------------------------------------------------------------------------------------
-#>
-Import-Module send-mailkitmessage
-import-module PSWriteHTML
-
-#endregion
-
-#Region Functions needed in script
-
-# Get cmmodule and install it
 function Get-CMModule {
     [CmdletBinding()]
     param()
@@ -83,7 +41,6 @@ function Get-CMModule {
 
 Get-CMModule
 
-# Get the sitecode
 function Get-CMSiteCode {
     $CMSiteCode = Get-WmiObject -Namespace "root\SMS" -Class SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
     return $CMSiteCode
@@ -94,8 +51,6 @@ $sitecode = get-cmsitecode
 $test = $sitecode+":"
 Set-Location $test
 
-
-# Get the month patchtuesday
 Function Get-PatchTuesday ($Month,$Year)  
  { 
     $FindNthDay=2 #Aka Second occurence 
@@ -111,7 +66,6 @@ Function Get-PatchTuesday ($Month,$Year)
    Write-Output "Patch Tuesday this month is $PatchDay"
  } 
 
-# Get all collections for a Device
 function Get-CMClientDeviceCollectionMembership {
     [CmdletBinding()]
     param (
@@ -138,6 +92,50 @@ end {}
 }
 
 #endregion
+
+#region Parameters
+
+# Date section
+$today = Get-Date
+$nextmonth = $today.Month +1
+
+$checkdatestart = Get-PatchTuesday -Month $today.Month -Year $today.Year
+$checkdateend = Get-PatchTuesday -Month $nextmonth -Year $today.Year
+$filedate = get-date -Format yyyMMdd
+$TitleDate = get-date -DisplayHint Date
+$counter = 0
+$HTMLFileSavePath = "c:\temp\KVV_MW_$filedate.HTML"
+
+$SMTP = 'smtp.kvv.se'
+$MailFrom = 'no-reply@kvv.se'
+$MailTo = 'christian.damberg@kriminalvarden.se'
+$MailPortnumber = '25'
+$MailCustomer = 'Kriminalvården - IT'
+$collectionidToCheck = 'PS100056'
+$collectionname = (Get-CMCollection -id $collectionidToCheck).name
+
+$siteserver = 'vntsql0081'
+
+#endregion
+
+#region modules
+
+<# 
+-------------------------------------------------------------------------------------------------------------------------
+Required Modules (installed offline under c:\program files\Windowspowershell\Modules
+
+Guide - https://johnnycase.github.io/post/2021/05/17/pwrshl-module-offline.html
+
+Send-MailkitMessage - https://www.powershellgallery.com/packages/Send-MailKitMessage/3.2.0
+
+psWriteHTML - https://www.powershellgallery.com/packages/PSWriteHTML/1.2.0
+-------------------------------------------------------------------------------------------------------------------------
+#>
+Import-Module send-mailkitmessage
+import-module PSWriteHTML
+
+#endregion
+
 
 #Region Script part 1 collect info from selected collection and check devices membership in Collections with Maintenance Windows
 
@@ -199,12 +197,12 @@ $scriptstop = (get-date).Second
 
 #region Script part 2 Create the html-file to be distributed
 
-New-HTML -TitleText "Maintenance Windows - Kriminalvården" -FilePath $HTMLFileSavePath -ShowHTML -Online {
+New-HTML -TitleText "Patchfönster- Kriminalvården" -FilePath $HTMLFileSavePath -ShowHTML -Online {
 
     New-HTMLHeader {
         New-HTMLSection -Invisible {
             New-HTMLPanel -Invisible {
-                New-HTMLText -Text $HTMLFileHeadLine -FontSize 35 -Color Darkblue -FontFamily Arial -Alignment center
+                New-HTMLText -Text "Kriminalvården - Patchfönster" -FontSize 35 -Color Darkblue -FontFamily Arial -Alignment center
                 New-HTMLHorizontalLine
             }
         }
@@ -309,10 +307,12 @@ $Body = @"
 
 <body>
 	<p><h1>Server Maintenance Windows - List</h1></p> 
-	<p><b>Script runtime ($scriptstop - $scriptstart) seconds</b><br></p> 
+	<p>Bifogad fil innehåller servrar från collection $collectionname.name .<br><br>
+med fönster mellan $checkdatestart och $checkdateend<br>
+<hr>
+</p> 
 	<p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
-	<p>Script created by:<br><a href="mailto:Your Email">Your name</a><br></p>
-	<p><a href="https://your blog">your description of your blog</a></p>
+
 	
 	
 	
