@@ -25,7 +25,9 @@ These script and functions are tested in my environment and it is recommended th
 
 # Date section
 $today = Get-Date
-$checkdatestart = $today.AddDays(-10)
+
+
+$checkdatestart = Get-PatchTuesday -Month $today.Month -Year $today.Year
 $checkdateend = $today.AddDays(30)
 $filedate = get-date -Format yyyMMdd
 $TitleDate = get-date -DisplayHint Date
@@ -86,6 +88,12 @@ function Get-CMSiteCode {
     $CMSiteCode = Get-WmiObject -Namespace "root\SMS" -Class SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
     return $CMSiteCode
 }
+
+$sitecode = get-cmsitecode
+
+$test = $sitecode+":"
+Set-Location $test
+
 
 # Get the month patchtuesday
 Function Get-PatchTuesday ($Month,$Year)  
@@ -224,71 +232,15 @@ New-HTML -TitleText "Maintenance Windows - Kriminalvården" -FilePath $HTMLFileS
 
 #Region CSS and HTML for mail thru Send-MailKitMessage
 
-$style = @"
-<style>
 
-    th {
-
-        font-family: Arial, Helvetica, sans-serif;
-        color: White;
-        font-size: 12px;
-        border: 1px solid black;
-        padding: 3px;
-        background-color: Black;
-
-    } 
-    p {
-
-        font-family: Arial, Helvetica, sans-serif;
-        color: black;
-        font-size: 12px;
-
-    } 
-    ol {
-
-        font-family: Arial, Helvetica, sans-serif;
-        list-style-type: square;
-        color: black;
-        font-size: 12px;
-
-    }
-    tr {
-
-        font-family: Arial, Helvetica, sans-serif;
-        color: black;
-        font-size: 11px;
-        vertical-align: text-top;
-
-    } 
-
-    body {
-        background-color: #B1E2EC;
-      }
-      table {
-        border: 1px solid black;
-        border-collapse: collapse;
-      }
-
-      td {
-        border: 1px solid black;
-        padding: 5px;
-        background-color: #E0F3F7;
-      }
-
-</style>
-"@
 
 #endregion
 
 #Region HTML Mail
 
-$header = @"
 
-<p><b>Server Maintenance Windows - List</b><br> 
 
-"@
-
-$Body2 = @"
+$Body = @"
 
 <!doctype html>
 <html>
@@ -371,20 +323,10 @@ $Body2 = @"
 "@
 
 
-$Body = @"
-
-<p><b>Script runtime ($scriptstop - $scriptstart) seconds</b><br></p> 
-
-"@
 
 
-$post = @"
-<p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
-<p>Script created by:<br><a href="mailto:Your Email">Your name</a><br>
-<a href="https://your blog">your description of your blog</a>
-"@
 
-ConvertTo-Html -Title "rrrrrrr" -PreContent $pre -PostContent $post -Head $header -Body $body
+#ConvertTo-Html -Title "rrrrrrr" -PreContent $pre -PostContent $post -Head $header -Body $body
 
 #endregion
 
