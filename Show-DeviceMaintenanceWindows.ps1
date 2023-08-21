@@ -307,7 +307,7 @@ $Body = @"
 
 <body>
 	<p><h1>Server Maintenance Windows - List</h1></p> 
-	<p>Bifogad fil innehåller servrar från collection $collectionname.name .<br><br>
+	<p>Bifogad fil innehåller servrar från collection $collectionname.<br><br>
 med fönster mellan $checkdatestart och $checkdateend<br>
 <hr>
 </p> 
