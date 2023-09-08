@@ -137,7 +137,7 @@ forEach ($item in $updates)
 #########################################################
 # Create a row in the email to present numbers of updates
 #########################################################
-#$Numbersofupdates = "Totalt antal patchar från Microsoft som finns i Uppdateringspaketet " + $UpdateGroupName + " = " + $result.count
+#$Numbersofupdates = "Totalt antal patchar frÃ¥n Microsoft som finns i Uppdateringspaketet " + $UpdateGroupName + " = " + $result.count
 $Numbersofupdates = "Total numbers of updates from Microsoft that exist in updatepackage " + $UpdateGroupName + " = " + $result.count
 
 #########################################################
