@@ -1,4 +1,4 @@
-﻿<#
+<#
 -------------------------------------------------------------------------------------------------------------------------
 .Synopsis
    Generate htmlpage with Devices and Maintenance Windows
@@ -64,7 +64,7 @@ Function Get-PatchTuesday ($Month,$Year)
     return $PatchDay
     Write-Log -Message "Patch Tuesday this month is $PatchDay" -Severity 1 -Component "Set Patch Tuesday"
    Write-Output "Patch Tuesday this month is $PatchDay"
- } 
+} 
 
 function Get-CMClientDeviceCollectionMembership {
     [CmdletBinding()]
@@ -105,17 +105,18 @@ $filedate = get-date -Format yyyMMdd
 $TitleDate = get-date -DisplayHint Date
 $counter = 0
 $HTMLFileSavePath = "c:\temp\KVV_MW_$filedate.HTML"
+$CSVFileSavePath = "c:\temp\KVV_MW_$filedate.csv"
 
 $SMTP = 'smtp.kvv.se'
 $MailFrom = 'no-reply@kvv.se'
 $MailTo = 'christian.damberg@kriminalvarden.se'
 $MailPortnumber = '25'
 $MailCustomer = 'Kriminalvården - IT'
-$collectionidToCheck = 'PS100056'
+$collectionidToCheck = 'KV1000B0'
 $collectionname = (Get-CMCollection -id $collectionidToCheck).name
 
-$siteserver = 'vntsql0081'
-$dbserver = 'vntsql0081'
+$siteserver = 'vntsql0299'
+$dbserver = 'VNTSQL0310'
 
 #endregion
 
@@ -179,16 +180,18 @@ foreach ($device in $devices)
                                 if ($mw.StartTime -gt $checkdatestart -and $mw.StartTime -lt $checkdateend)
                                 {
                                 $computername = $device.Name                                
-                                $query = "select Description from dbo.ServerInfo where ServerName ='$computername'"
-                                $data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverdata -Query $query
+                                $query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
+                                $data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
+                                $Startdatum = ($mw.StartTime).ToString("yyyy-MM-dd")
+                                $starttid = ($mw.StartTime).ToString("hh:mm")
                                 
                                 $object = New-Object -TypeName PSObject
-                                $object | Add-Member -MemberType NoteProperty -Name 'Device' -Value $device.name
-                                $object | Add-Member -MemberType NoteProperty -Name 'Device' -Value $data.Description
-                                $object | Add-Member -MemberType NoteProperty -Name 'Collection-Name' -Value $collectionid.name
-                                $object | Add-Member -MemberType NoteProperty -Name 'StartTime' -Value $mw.StartTime
-                                $object | Add-Member -MemberType NoteProperty -Name 'Duration' -Value $mw.Duration
-          
+                                $object | Add-Member -MemberType NoteProperty -Name 'Applikation' -Value $data.applikation
+                                $object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $device.name
+                                $object | Add-Member -MemberType NoteProperty -Name 'Startdatum' -Value $Startdatum
+                                $object | Add-Member -MemberType NoteProperty -Name 'Starttid' -Value $starttid
+                                $object | Add-Member -MemberType NoteProperty -Name 'Varaktighet' -Value $mw.Duration
+                                $object | Add-Member -MemberType NoteProperty -Name 'Deployment' -Value $collectionid.name
                                 $resultColl += $object
                                 }
                             }
@@ -196,6 +199,7 @@ foreach ($device in $devices)
             }
         }
 
+$ResultColl | Export-Csv -Path $CSVFileSavePath -Encoding UTF8 -Verbose
 $scriptstop = (get-date).Second
 
 #endregion
@@ -215,7 +219,7 @@ New-HTML -TitleText "Patchfönster- Kriminalvården" -FilePath $HTMLFileSavePath
 
     New-HTMLSection -Invisible -Title "Maintenance Windows $filedate"{
 
-        New-HTMLTable -DataTable $ResultColl -PagingLength 25
+        New-HTMLTable -DataTable $ResultColl -PagingLength 25 -Style compact
     }
 
     New-HTMLFooter {
@@ -277,7 +281,7 @@ $Body = @"
         font-size: 12px;
 
     }
-	    H1 {
+                H1 {
 
         font-family: Arial, Helvetica, sans-serif;
         color: black;
@@ -311,27 +315,24 @@ $Body = @"
 </head>
 
 <body>
-	<p><h1>Server Maintenance Windows - List</h1></p> 
-	<p>Bifogad fil innehåller servrar från collection $collectionname.<br><br>
+            <p><h1>Server Maintenance Windows - List</h1></p> 
+            <p>Bifogad fil innehåller servrar från collection $collectionname.<br><br>
 med fönster mellan $checkdatestart och $checkdateend<br>
 <hr>
 </p> 
-	<p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
+            <p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
 
-	
-	
-	
+            
+            
+            
 </body>
 </html>
- 
+
 
 "@
 
 
 
-
-
-#ConvertTo-Html -Title "rrrrrrr" -PreContent $pre -PostContent $post -Head $header -Body $body
 
 #endregion
 
@@ -381,6 +382,7 @@ $HTMLBody=[string]$Body
 #attachment list ([System.Collections.Generic.List[string]], optional)
 $AttachmentList=[System.Collections.Generic.List[string]]::new()
 $AttachmentList.Add("$HTMLFileSavePath")
+$AttachmentList.Add("$CSVFileSavePath")
 
 # Mailparameters
 $Parameters=@{
@@ -403,5 +405,7 @@ $Parameters=@{
 #Region Send Mail
 
 Send-MailKitMessage @Parameters
+
+
 
 #endregion
