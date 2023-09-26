@@ -21,6 +21,8 @@ These script and functions are tested in my environment and it is recommended th
 -------------------------------------------------------------------------------------------------------------------------
 #>
 
+$siteserver = 'vntsql0299'
+$dbserver = 'VNTSQL0310'
 
 #region Functions needed in script
 
@@ -48,8 +50,8 @@ function Get-CMSiteCode {
 
 $sitecode = get-cmsitecode
 
-$test = $sitecode+":"
-Set-Location $test
+$SetSiteCode = $sitecode+":"
+Set-Location $SetSiteCode
 
 Function Get-PatchTuesday ($Month,$Year)  
  { 
@@ -64,7 +66,7 @@ Function Get-PatchTuesday ($Month,$Year)
     return $PatchDay
     Write-Log -Message "Patch Tuesday this month is $PatchDay" -Severity 1 -Component "Set Patch Tuesday"
    Write-Output "Patch Tuesday this month is $PatchDay"
-} 
+ } 
 
 function Get-CMClientDeviceCollectionMembership {
     [CmdletBinding()]
@@ -95,7 +97,7 @@ end {}
 
 #region Parameters
 
-# Date section
+# Date and mail section
 $today = Get-Date
 $nextmonth = $today.Month +1
 
@@ -115,8 +117,7 @@ $MailCustomer = 'Kriminalvården - IT'
 $collectionidToCheck = 'KV1000B0'
 $collectionname = (Get-CMCollection -id $collectionidToCheck).name
 
-$siteserver = 'vntsql0299'
-$dbserver = 'VNTSQL0310'
+
 
 #endregion
 
@@ -143,7 +144,7 @@ import-module PSWriteHTML
 
 # Array to collect data in
 $ResultColl = @()
-
+$ResultMissing = @()
 # Devices
 $devices = Get-CMCollectionMember -CollectionId $collectionidToCheck
 
@@ -196,10 +197,14 @@ foreach ($device in $devices)
                                 }
                             }
                     }
+
             }
         }
 
 $ResultColl | Export-Csv -Path $CSVFileSavePath -Encoding UTF8 -Verbose
+
+
+
 $scriptstop = (get-date).Second
 
 #endregion
@@ -220,6 +225,7 @@ New-HTML -TitleText "Patchfönster- Kriminalvården" -FilePath $HTMLFileSavePath
     New-HTMLSection -Invisible -Title "Maintenance Windows $filedate"{
 
         New-HTMLTable -DataTable $ResultColl -PagingLength 25 -Style compact
+        
     }
 
     New-HTMLFooter {
@@ -281,7 +287,7 @@ $Body = @"
         font-size: 12px;
 
     }
-                H1 {
+	    H1 {
 
         font-family: Arial, Helvetica, sans-serif;
         color: black;
@@ -315,19 +321,19 @@ $Body = @"
 </head>
 
 <body>
-            <p><h1>Server Maintenance Windows - List</h1></p> 
-            <p>Bifogad fil innehåller servrar från collection $collectionname.<br><br>
+	<p><h1>Server Maintenance Windows - List</h1></p> 
+	<p>Bifogad fil innehåller servrar från collection $collectionname.<br><br>
 med fönster mellan $checkdatestart och $checkdateend<br>
 <hr>
 </p> 
-            <p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
+	<p>Report created $((Get-Date).ToString()) from <b><i>$($Env:Computername)</i></b></p>
 
-            
-            
-            
+	
+	
+	
 </body>
 </html>
-
+ 
 
 "@
 
@@ -406,6 +412,8 @@ $Parameters=@{
 
 Send-MailKitMessage @Parameters
 
+set-location $PSScriptRoot
 
 
 #endregion
+
