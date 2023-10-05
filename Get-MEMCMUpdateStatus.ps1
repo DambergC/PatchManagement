@@ -229,33 +229,22 @@ end {}
 
 $todayDefault = Get-Date
 $todayCompare = (get-date).ToString("yyyy-MM-dd")
-$patchdayDefault = Get-PatchTuesday -Month $today.Month -Year $today.Year 
-$patchdayCompare = (Get-PatchTuesday -Month $today.Month -Year $today.Year).tostring("yyyy-MM-dd")
-$ReportdayCompare = ($patchdayClean.AddDays(14)).tostring("yyyy-MM-dd")
+$patchdayDefault = Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year 
+$patchdayCompare = (Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year).tostring("yyyy-MM-dd")
+$ReportdayCompare = ($patchdayDefault.AddDays(-5)).tostring("yyyy-MM-dd")
 
 
 
 
-write-host -ForegroundColor Green "Patch tuesday is $todayCompare and $patchdayCompare and $ReportdayCompare"
 
 
 if ($todayCompare -eq $ReportdayCompare)
 
 {
 
-    $UpdateStatus = Get-SCCMSoftwareUpdateStatus -DeploymentID 16777364
+    $UpdateStatus = Get-SCCMSoftwareUpdateStatus -DeploymentID 16777362
 
-}
-
-else
-
-{
-
-    write-host "date not equal"
-
-}
-
-foreach ($US in $UpdateStatus)
+    foreach ($US in $UpdateStatus)
 {
 
                                 $object = New-Object -TypeName PSObject
@@ -269,6 +258,22 @@ foreach ($US in $UpdateStatus)
 
 
 }
+
+}
+
+else
+
+{
+
+    write-host "date not equal"
+    
+write-host -ForegroundColor Green "Patch tuesday is $patchdayCompare and Today it is $todayCompare and rundate for the report is $ReportdayCompare"
+
+exit
+
+}
+
+
 
 
 
@@ -437,7 +442,7 @@ $HTMLBody=[string]$Body
 #attachment list ([System.Collections.Generic.List[string]], optional)
 $AttachmentList=[System.Collections.Generic.List[string]]::new()
 $AttachmentList.Add("$HTMLFileSavePath")
-$AttachmentList.Add("$CSVFileSavePath")
+#$AttachmentList.Add("$CSVFileSavePath")
 
 # Mailparameters
 $Parameters=@{
