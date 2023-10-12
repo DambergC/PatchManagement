@@ -6,15 +6,12 @@
    Script to be run as schedule task on siteserver. It's recommended to be use my script to
    Generate scheduleTask based on offset from patchTuesday.
 
-   https://github.com/DambergC/PatchManagement/blob/main/Set-ScheduleTaskPatchTuesday.ps1
-
    The script generate a html-page and if you use the send-mailkitmessage it will send a mail
    to a group of administrators with info about the Maintenace Windows for a devices in a 
    collection.
 .EXAMPLE
    Show-DeviceMaintenanceWindows.ps1
-.VERSION
-   0.0.9    Development only
+
 .DISCLAIMER
 All scripts and other Powershell references are offered AS IS with no warranty.
 These script and functions are tested in my environment and it is recommended that you test these scripts in a test environment before using in your production environment.
@@ -177,29 +174,60 @@ foreach ($device in $devices)
                             foreach ($mw in $MWs)
 
                             {
-                                # Only show Maintenance Windows waiting to run
-                                if ($mw.StartTime -gt $checkdatestart -and $mw.StartTime -lt $checkdateend)
+                            
+                                if ($mw.RecurrenceType -eq 1)
+
                                 {
-                                $computername = $device.Name                                
-                                $query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
-                                $data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
-                                $Startdatum = ($mw.StartTime).ToString("yyyy-MM-dd")
-                                $starttid = ($mw.StartTime).ToString("hh:mm")
-                                
-                                $object = New-Object -TypeName PSObject
-                                $object | Add-Member -MemberType NoteProperty -Name 'Applikation' -Value $data.applikation
-                                $object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $device.name
-                                $object | Add-Member -MemberType NoteProperty -Name 'Startdatum' -Value $Startdatum
-                                $object | Add-Member -MemberType NoteProperty -Name 'Starttid' -Value $starttid
-                                $object | Add-Member -MemberType NoteProperty -Name 'Varaktighet' -Value $mw.Duration
-                                $object | Add-Member -MemberType NoteProperty -Name 'Deployment' -Value $collectionid.name
-                                $resultColl += $object
-                                }
-                            }
-                    }
+                                        # Only show Maintenance Windows waiting to run
+                                        if ($mw.StartTime -gt $checkdatestart -and $mw.StartTime -lt $checkdateend)
+                                            {
+                                            $computername = $device.Name                                
+                                            $query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
+                                            $data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
+                                            $Startdatum = ($mw.StartTime).ToString("yyyy-MM-dd")
+                                            $starttid = ($mw.StartTime).ToString("hh:mm")
+                                            
+                                            $object = New-Object -TypeName PSObject
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Applikation' -Value $data.applikation
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $device.name
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Startdatum' -Value $Startdatum
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Starttid' -Value $starttid
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Varaktighet' -Value $mw.Duration
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Deployment' -Value $collectionid.name
+                                            $resultColl += $object
+                                            }
+
+                                    }
+
+                                if ($mw.RecurrenceType -eq 3)
+
+                                {
+     
+                                            $computername = $device.Name                                
+                                            $query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
+                                            $data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
+                                            $Startdatum = ($mw.StartTime).ToString("yyyy-MM-dd")
+                                            $starttid = ($mw.StartTime).ToString("hh:mm")
+                                            
+                                            $object = New-Object -TypeName PSObject
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Applikation' -Value $data.applikation
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $device.name
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Startdatum' -Value $Startdatum
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Starttid' -Value $mw.Name
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Varaktighet' -Value $mw.Duration
+                                            $object | Add-Member -MemberType NoteProperty -Name 'Deployment' -Value $collectionid.name
+                                            $resultColl += $object
+                                            }
+
+                            
+                               }
+
+                            
+                         }
 
             }
         }
+        
 
 $ResultColl | Export-Csv -Path $CSVFileSavePath -Encoding UTF8 -Verbose
 
