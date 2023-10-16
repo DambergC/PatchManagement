@@ -231,7 +231,7 @@ $todayDefault = Get-Date
 $todayCompare = (get-date).ToString("yyyy-MM-dd")
 $patchdayDefault = Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year 
 $patchdayCompare = (Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year).tostring("yyyy-MM-dd")
-$ReportdayCompare = ($patchdayDefault.AddDays(-5)).tostring("yyyy-MM-dd")
+$ReportdayCompare = ($patchdayDefault.AddDays(6)).tostring("yyyy-MM-dd")
 
 
 
@@ -274,7 +274,12 @@ exit
 }
 
 
+$errorvalue = ($UpdateStatus | Where-Object {($_.status -eq 'error')}).count
 
+
+$successvalue = ($UpdateStatus | Where-Object {($_.status -eq 'success')}).count
+
+$colletionname = $UpdateStatus.collectionname | Select-Object -First 1
 
 
 New-HTML -TitleText "Uppdatering Status - Kriminalvården" -FilePath $HTMLFileSavePath -ShowHTML -Online {
@@ -287,6 +292,21 @@ New-HTML -TitleText "Uppdatering Status - Kriminalvården" -FilePath $HTMLFileSa
             }
         }
     }
+    New-HTMLSection -Invisible -Title "UpdateStatus $filedate"{
+
+        New-HTMLPanel {
+            New-HTMLChart {
+                New-ChartLegend -LegendPosition bottom -HorizontalAlign right -Color red, darkgreen -DisableOnItemClickToggleDataSeries -DisableOnItemHoverHighlightDataSeries
+                New-ChartAxisY -LabelMaxWidth 100 -LabelAlign left -Show -LabelFontColor red, darkgreen -TitleText 'Status' -TitleColor Red
+                New-ChartBarOptions -Distributed
+                New-ChartBar -Name 'Error' -Value $errorvalue
+                New-ChartBar -name 'Success' -Value $successvalue
+                } -Title 'Resultat av patchning' -TitleAlignment center -SubTitle $colletionname -SubTitleAlignment center -SubTitleFontSize 20 -TitleColor Darkblue
+            }
+        
+        }
+        
+
 
     New-HTMLSection -Invisible -Title "UpdateStatus $filedate"{
 
@@ -305,8 +325,8 @@ New-HTML -TitleText "Uppdatering Status - Kriminalvården" -FilePath $HTMLFileSa
             
         }
     }
-}
 
+    }
 
 $Body = @"
 
@@ -467,3 +487,4 @@ $Parameters=@{
 Send-MailKitMessage @Parameters
 
 set-location $PSScriptRoot
+
