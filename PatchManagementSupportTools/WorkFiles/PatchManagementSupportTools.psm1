@@ -11,7 +11,7 @@
 #>
 
 
-#region Functions
+#region Functions.
 
 function Get-SCCMSoftwareUpdateStatus
 {
