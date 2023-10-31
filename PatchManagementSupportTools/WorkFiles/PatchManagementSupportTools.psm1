@@ -208,11 +208,6 @@ function Get-CMSiteCode
 	return $CMSiteCode
 }
 
-$sitecode = get-cmsitecode
-
-$SetSiteCode = $sitecode + ":"
-Set-Location $SetSiteCode
-
 Function Get-PatchTuesday ($Month, $Year)
 {
 	$FindNthDay = 2 #Aka Second occurence 
