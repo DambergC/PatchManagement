@@ -19,9 +19,6 @@
 	===========================================================================
 	Values needed to be updated before running the script
 	===========================================================================
-
-
-	DON´T EDIT!!!
 #>
 
 
@@ -107,6 +104,14 @@ else
 
 	Here youy may edit what you need to make the script working in your environment.
 #>
+
+
+function Get-CMSiteCode
+{
+	$CMSiteCode = Get-WmiObject -Namespace "root\SMS" -Class SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
+	return $CMSiteCode
+}
+
 
 Get-CMModule
 $sitecode = get-cmsitecode

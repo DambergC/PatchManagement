@@ -19,22 +19,22 @@
 	RootModule = 'PatchManagementSupportTools.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '1.0.0.1'
+	ModuleVersion = '1.0.0.3'
 	
 	# ID used to uniquely identify this module
 	GUID = '5a36e8f9-605e-4b16-87b9-dad63514c6f1'
 	
 	# Author of this module
-	Author = 'Administrator'
+	Author = 'Christian Damberg'
 	
 	# Company or vendor of this module
-	CompanyName = ''
+	CompanyName = 'Telia Cygate AB'
 	
 	# Copyright statement for this module
 	Copyright = '(c) 2023. All rights reserved.'
 	
 	# Description of the functionality provided by this module
-	Description = 'Module description'
+	Description = 'Collection of function to be used when creating html-reports for MEMCM'
 	
 	# Supported PSEditions
 	# CompatiblePSEditions = @('Core', 'Desktop')
@@ -82,7 +82,6 @@
 	FunctionsToExport = @(
 		'Get-SCCMSoftwareUpdateStatus',
 		'Get-CMModule',
-		'Get-CMSiteCode',
 		'Get-PatchTuesday',
 		'Get-CMClientDeviceCollectionMembership'
 	) #For performance, list functions explicitly

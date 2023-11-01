@@ -18,29 +18,92 @@ These script and functions are tested in my environment and it is recommended th
 -------------------------------------------------------------------------------------------------------------------------
 #>
 
-$siteserver = '<Siteservername>'
+<#
+	===========================================================================
+	Values needed to be updated before running the script
+	===========================================================================
+#>
+
+$siteserver = 'cm01'
 $dbserver = '<SQLserver_for_extra_info>'
+$DaysAfterPatchTuesdayToReport = '6'
 
-#region Functions needed in script
+$HTMLFileSavePath = "c:\temp\KVV_MW_$filedate.HTML"
+$CSVFileSavePath = "c:\temp\KVV_MW_$filedate.csv"
+$SMTP = '<SMTP-server>'
+$MailFrom = '<no-replyaddress>'
+$MailTo = '<Mailto>'
+$MailPortnumber = '25'
+$MailCustomer = '<Customername>'
+$collectionidToCheck = '<Collectionid>'
 
-function Get-CMModule
+
+
+
+
+<#
+	===========================================================================
+	Powershell modules needed in the script
+	===========================================================================
+
+	Send-MailkitMessage - https://github.com/austineric/Send-MailKitMessage
+
+	pswritehtml - https://github.com/EvotecIT/PSWriteHTML
+
+	PatchManagementSupportTools - Created by Christian Damberg, Cygate
+	https://github.com/DambergC/PatchManagement/tree/main/PatchManagementSupportTools
+
+	DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!
+#>
+
+#region modules
+
+if (-not (Get-Module -name send-mailkitmessage))
 {
-	[CmdletBinding()]
-	param ()
-	
-	Try
-	{
-		Write-Verbose "Trying to import SCCM Module"
-		Import-Module (Join-Path $(Split-Path $ENV:SMS_ADMIN_UI_PATH) ConfigurationManager.psd1) -Verbose:$false
-		Write-Verbose "Nice...imported the SCCM Module"
-	}
-	Catch
-	{
-		Throw "Failure to import SCCM Cmdlets."
-	}
+	Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
+	Import-Module send-mailkitmessage
+	write-host -ForegroundColor Green 'Send-Mailkitmessage imported'
 }
 
-Get-CMModule
+else
+{
+	
+	write-host -ForegroundColor Green 'Send-Mailkitmessage already imported and installed!'
+}
+
+
+if (-not (Get-Module -name PSWriteHTML))
+{
+	Install-Module PSWriteHTML -ErrorAction SilentlyContinue
+	Import-Module PSWriteHTML
+	write-host -ForegroundColor Green 'PSWriteHTML imported'
+}
+
+else
+{
+	
+	write-host -ForegroundColor Green 'PSWriteHTML already imported and installed!'
+}
+
+
+if (-not (Get-Module -name PatchManagementSupportTools))
+{
+	Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
+	Import-Module PatchManagementSupportTools
+	write-host -ForegroundColor Green 'PatchManagementSupportTools imported'
+}
+
+else
+{
+	
+	write-host -ForegroundColor Green 'PatchManagementSupportTools already imported and installed!'
+}
+
+
+
+
+
+#endregion
 
 function Get-CMSiteCode
 {
@@ -48,143 +111,106 @@ function Get-CMSiteCode
 	return $CMSiteCode
 }
 
+
+Get-CMModule -Verbose
 $sitecode = get-cmsitecode
 
 $SetSiteCode = $sitecode + ":"
 Set-Location $SetSiteCode
 
-Function Get-PatchTuesday ($Month, $Year)
-{
-	$FindNthDay = 2 #Aka Second occurence 
-	$WeekDay = 'Tuesday'
-	$todayM = ($Month).ToString()
-	$todayY = ($Year).ToString()
-	$StrtMonth = $todayM + '/1/' + $todayY
-	[datetime]$StrtMonth = $todayM + '/1/' + $todayY
-	while ($StrtMonth.DayofWeek -ine $WeekDay) { $StrtMonth = $StrtMonth.AddDays(1) }
-	$PatchDay = $StrtMonth.AddDays(7 * ($FindNthDay - 1))
-	return $PatchDay
-	Write-Log -Message "Patch Tuesday this month is $PatchDay" -Severity 1 -Component "Set Patch Tuesday"
-	Write-Output "Patch Tuesday this month is $PatchDay"
-}
+<#
+	===========================================================================		
+	Date-section
 
-function Get-CMClientDeviceCollectionMembership
-{
-	[CmdletBinding()]
-	param (
-		[string]$ComputerName = $env:COMPUTERNAME,
-		[string]$SiteServer = (Get-WmiObject -Namespace root\ccm -ClassName SMS_Authority).CurrentManagementPoint,
-		[string]$SiteCode = (Get-WmiObject -Namespace root\ccm -ClassName SMS_Authority).Name.Split(':')[1],
-		[switch]$Summary,
-		[System.Management.Automation.PSCredential]$Credential = [System.Management.Automation.PSCredential]::Empty
-	)
-	
-	begin { }
-	process
-	{
-		Write-Verbose -Message "Gathering collection membership of $ComputerName from Site Server $SiteServer using Site Code $SiteCode."
-		$Collections = Get-WmiObject -ComputerName $SiteServer -Namespace root/SMS/site_$SiteCode -Credential $Credential -Query "SELECT SMS_Collection.* FROM SMS_FullCollectionMembership, SMS_Collection where name = '$ComputerName' and SMS_FullCollectionMembership.CollectionID = SMS_Collection.CollectionID"
-		if ($Summary)
-		{
-			$Collections | Select-Object -Property Name, CollectionID
-		}
-		else
-		{
-			$Collections
-		}
-		
-	}
-	end { }
-}
+	DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!
+	===========================================================================
+#>
 
-#endregion
+$todayDefault = Get-Date
+$todayCompare = (get-date).ToString("yyyy-MM-dd")
+$patchdayDefault = Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year
+$patchdayCompare = (Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year).tostring("yyyy-MM-dd")
 
-#region Parameters
+# Compare and see if the report should be run or not...
+$ReportdayCompare = ($patchdayDefault.AddDays($DaysAfterPatchTuesdayToReport)).tostring("yyyy-MM-dd")
+
 
 # Date and mail section
-$today = Get-Date
-$nextmonth = $today.Month + 1
+$todaydefault = Get-Date
+$nextmonth = $todaydefault.Month + 1
 
-$checkdatestart = Get-PatchTuesday -Month $today.Month -Year $today.Year
-$checkdateend = Get-PatchTuesday -Month $nextmonth -Year $today.Year
+$checkdatestart = Get-PatchTuesday -Month $todaydefault.Month -Year $todaydefault.Year
+$checkdateend = Get-PatchTuesday -Month $nextmonth -Year $todaydefault.Year
 $filedate = get-date -Format yyyMMdd
 $TitleDate = get-date -DisplayHint Date
 $counter = 0
-$HTMLFileSavePath = "c:\temp\KVV_MW_$filedate.HTML"
-$CSVFileSavePath = "c:\temp\KVV_MW_$filedate.csv"
-
-$SMTP = '<SMTP-server>'
-$MailFrom = '<no-replyaddress>'
-$MailTo = '<Mailto>'
-$MailPortnumber = '25'
-$MailCustomer = '<Customername>'
-$collectionidToCheck = '<Collectionid>'
-$collectionname = (Get-CMCollection -id $collectionidToCheck).name
 
 
-
-#endregion
-
-#region modules
-
-<# 
--------------------------------------------------------------------------------------------------------------------------
-Required Modules (installed offline under c:\program files\Windowspowershell\Modules
-
-Guide - https://johnnycase.github.io/post/2021/05/17/pwrshl-module-offline.html
-
-Send-MailkitMessage - https://www.powershellgallery.com/packages/Send-MailKitMessage/3.2.0
-
-psWriteHTML - https://www.powershellgallery.com/packages/PSWriteHTML/1.2.0
--------------------------------------------------------------------------------------------------------------------------
-#>
-Import-Module send-mailkitmessage
-import-module PSWriteHTML
-
-#endregion
 
 
 #Region Script part 1 collect info from selected collection and check devices membership in Collections with Maintenance Windows
 
-# Array to collect data in
-$ResultColl = @()
-$ResultMissing = @()
-# Devices
-$devices = Get-CMCollectionMember -CollectionId $collectionidToCheck
-
-
-# For the progressbar
-$complete = 0
-
-$scriptstart = (get-date).Second
-
-# Loop for each device
-foreach ($device in $devices)
+if ($todayCompare -eq $ReportdayCompare)
 {
-	$counter++
-	Write-Progress -Activity 'Processing computer' -CurrentOperation $device.Name -PercentComplete (($counter / $devices.count) * 100)
-	Start-Sleep -Milliseconds 100
+	# Array to collect data in
+	$ResultColl = @()
+	$ResultMissing = @()
+	# Devices
+	$devices = Get-CMCollectionMember -CollectionId $collectionidToCheck
 	
-	# Get all Collections for Device
-	$collectionids = Get-CMClientDeviceCollectionMembership -ComputerName $device.name
 	
-	# Check every Collection for Maintenance windows
-	foreach ($collectionid in $collectionids)
+	# For the progressbar
+	$complete = 0
+	
+	
+	# Loop for each device
+	foreach ($device in $devices)
 	{
+		$counter++
+		Write-Progress -Activity 'Processing computer' -CurrentOperation $device.Name -PercentComplete (($counter / $devices.count) * 100)
+		Start-Sleep -Milliseconds 100
 		
-		# Only include Collections with Maintenance Windows
-		if ($collectionid.ServiceWindowsCount -gt 0)
+		# Get all Collections for Device
+		$collectionids = Get-CMClientDeviceCollectionMembership -ComputerName $device.name
+		
+		# Check every Collection for Maintenance windows
+		foreach ($collectionid in $collectionids)
 		{
-			$MWs = Get-CMMaintenanceWindow -CollectionId $collectionid.CollectionID
 			
-			foreach ($mw in $MWs)
+			# Only include Collections with Maintenance Windows
+			if ($collectionid.ServiceWindowsCount -gt 0)
 			{
+				$MWs = Get-CMMaintenanceWindow -CollectionId $collectionid.CollectionID
 				
-				if ($mw.RecurrenceType -eq 1)
+				foreach ($mw in $MWs)
 				{
-					# Only show Maintenance Windows waiting to run
-					if ($mw.StartTime -gt $checkdatestart -and $mw.StartTime -lt $checkdateend)
+					
+					if ($mw.RecurrenceType -eq 1)
 					{
+						# Only show Maintenance Windows waiting to run
+						if ($mw.StartTime -gt $checkdatestart -and $mw.StartTime -lt $checkdateend)
+						{
+							$computername = $device.Name
+							$query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
+							$data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
+							$Startdatum = ($mw.StartTime).ToString("yyyy-MM-dd")
+							$starttid = ($mw.StartTime).ToString("hh:mm")
+							
+							$object = New-Object -TypeName PSObject
+							$object | Add-Member -MemberType NoteProperty -Name 'Applikation' -Value $data.applikation
+							$object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $device.name
+							$object | Add-Member -MemberType NoteProperty -Name 'Startdatum' -Value $Startdatum
+							$object | Add-Member -MemberType NoteProperty -Name 'Starttid' -Value $starttid
+							$object | Add-Member -MemberType NoteProperty -Name 'Varaktighet' -Value $mw.Duration
+							$object | Add-Member -MemberType NoteProperty -Name 'Deployment' -Value $collectionid.name
+							$resultColl += $object
+						}
+						
+					}
+					
+					if ($mw.RecurrenceType -eq 3)
+					{
+						
 						$computername = $device.Name
 						$query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
 						$data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
@@ -195,48 +221,40 @@ foreach ($device in $devices)
 						$object | Add-Member -MemberType NoteProperty -Name 'Applikation' -Value $data.applikation
 						$object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $device.name
 						$object | Add-Member -MemberType NoteProperty -Name 'Startdatum' -Value $Startdatum
-						$object | Add-Member -MemberType NoteProperty -Name 'Starttid' -Value $starttid
+						$object | Add-Member -MemberType NoteProperty -Name 'Starttid' -Value $mw.Name
 						$object | Add-Member -MemberType NoteProperty -Name 'Varaktighet' -Value $mw.Duration
 						$object | Add-Member -MemberType NoteProperty -Name 'Deployment' -Value $collectionid.name
 						$resultColl += $object
 					}
 					
-				}
-				
-				if ($mw.RecurrenceType -eq 3)
-				{
 					
-					$computername = $device.Name
-					$query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
-					$data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
-					$Startdatum = ($mw.StartTime).ToString("yyyy-MM-dd")
-					$starttid = ($mw.StartTime).ToString("hh:mm")
-					
-					$object = New-Object -TypeName PSObject
-					$object | Add-Member -MemberType NoteProperty -Name 'Applikation' -Value $data.applikation
-					$object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $device.name
-					$object | Add-Member -MemberType NoteProperty -Name 'Startdatum' -Value $Startdatum
-					$object | Add-Member -MemberType NoteProperty -Name 'Starttid' -Value $mw.Name
-					$object | Add-Member -MemberType NoteProperty -Name 'Varaktighet' -Value $mw.Duration
-					$object | Add-Member -MemberType NoteProperty -Name 'Deployment' -Value $collectionid.name
-					$resultColl += $object
 				}
 				
 				
 			}
 			
-			
 		}
-		
 	}
+	
+	
+	$ResultColl | Export-Csv -Path $CSVFileSavePath -Encoding UTF8 -Verbose
+	
 }
 
+else
+{
+	
+	write-host "date not equal"
+	
+	write-host -ForegroundColor Green "Patch tuesday is $patchdayCompare and Today it is $todayCompare and rundate for the report is $ReportdayCompare"
+	
+	set-location $PSScriptRoot
+	
+	exit
+	
+	
+}
 
-$ResultColl | Export-Csv -Path $CSVFileSavePath -Encoding UTF8 -Verbose
-
-
-
-$scriptstop = (get-date).Second
 
 #endregion
 
@@ -265,7 +283,7 @@ New-HTML -TitleText "Patchfönster- Kriminalvården" -FilePath $HTMLFileSavePath
 			
 			New-HTMLPanel -Invisible {
 				New-HTMLHorizontalLine
-				New-HTMLText -Text "Denna lista skapades $today" -FontSize 20 -Color Darkblue -FontFamily Arial -Alignment center -FontStyle italic
+				New-HTMLText -Text "Denna lista skapades $todaydefault" -FontSize 20 -Color Darkblue -FontFamily Arial -Alignment center -FontStyle italic
 			}
 			
 		}
@@ -282,6 +300,8 @@ New-HTML -TitleText "Patchfönster- Kriminalvården" -FilePath $HTMLFileSavePath
 
 #Region HTML Mail
 
+#Variable needed in html
+$collectionname = (Get-CMCollection -id $collectionidToCheck).name
 
 
 $Body = @"

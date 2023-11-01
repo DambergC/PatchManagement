@@ -59,8 +59,8 @@ function Get-SCCMSoftwareUpdateStatus
 	
 	BEGIN
 	{
-		$Site_Code = 'KV1'
-		$Site_Server = 'vntsql0299'
+		$Site_Code = $sitecode
+		$Site_Server = $siteserver
 		$HasErrors = $False
 		
 		if ($Status -eq 'Success')
@@ -200,12 +200,6 @@ function Get-CMModule
 	{
 		Throw "Failure to import SCCM Cmdlets."
 	}
-}
-
-function Get-CMSiteCode
-{
-	$CMSiteCode = Get-WmiObject -Namespace "root\SMS" -Class SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
-	return $CMSiteCode
 }
 
 Function Get-PatchTuesday ($Month, $Year)
