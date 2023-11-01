@@ -15,6 +15,29 @@
 		===========================================================================
 #>
 
+<#
+	===========================================================================
+	Values needed to be updated before running the script
+	===========================================================================
+
+
+	DON´T EDIT!!!
+#>
+
+
+$deploymentIDtoCheck = '16777362'
+$DaysAfterPatchTuesdayToReport = '6'
+$siteserver = 'vntsql0299'
+$filedate = get-date -Format yyyMMdd
+$HTMLFileSavePath = "c:\temp\$sitecode_UpdateStatus_$filedate.HTML"
+$CSVFileSavePath = "c:\temp\$sitecodeUpdateStatus_$filedate.csv"
+
+$SMTP = 'smtp.kvv.se'
+$MailFrom = 'no-reply@kvv.se'
+$MailTo = 'christian.damberg@kriminalvarden.se'
+$MailPortnumber = '25'
+$MailCustomer = 'Kriminalvården - IT'
+
 
 <#
 	===========================================================================
@@ -22,7 +45,11 @@
 	===========================================================================
 
 	Send-MailkitMessage - https://github.com/austineric/Send-MailKitMessage
+
 	pswritehtml - https://github.com/EvotecIT/PSWriteHTML
+
+	PatchManagementSupportTools - Created by Christian Damberg, Cygate
+	https://github.com/DambergC/PatchManagement/tree/main/PatchManagementSupportTools
 
 	DON´T EDIT!!!
 #>
@@ -85,19 +112,6 @@ Get-CMModule
 $sitecode = get-cmsitecode
 $SetSiteCode = $sitecode + ":"
 Set-Location $SetSiteCode
-
-$deploymentIDtoCheck = '16777362'
-$DaysAfterPatchTuesdayToReport = '6'
-$siteserver = 'vntsql0299'
-$filedate = get-date -Format yyyMMdd
-$HTMLFileSavePath = "c:\temp\$sitecode_UpdateStatus_$filedate.HTML"
-$CSVFileSavePath = "c:\temp\$sitecodeUpdateStatus_$filedate.csv"
-
-$SMTP = 'smtp.kvv.se'
-$MailFrom = 'no-reply@kvv.se'
-$MailTo = 'christian.damberg@kriminalvarden.se'
-$MailPortnumber = '25'
-$MailCustomer = 'Kriminalvården - IT'
 
 $ResultColl = @()
 
