@@ -24,21 +24,25 @@ These script and functions are tested in my environment and it is recommended th
 	===========================================================================
 #>
 
-$siteserver = 'vntsql0299'
-$dbserver = 'VNTSQL0310'
+$siteserver = '<siteserver>'
+$dbserver = '<dbserver_for_extra_info'
 $DaysAfterPatchTuesdayToReport = '-6'
 $DisableReport = ""
-
+# if you want more logging it should be value 1 if not 0
+$extendedlogging ='1'
 $filedate = get-date -Format yyyMMdd
 $HTMLFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.HTML"
 $CSVFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.csv"
-$SMTP = 'smtp.kvv.se'
-$MailFrom = 'no-reply@kvv.se'
-#$MailTo = 'christian.damberg@kriminalvarden.se'
-$MailTo = 'dl144.hk01@kriminalvarden.se'
+$SMTP = '<smtp-server>'
+$MailFrom = '<no-reply-address>'
+$MailTo1 = 'recipient_one'
+$MailTo2 = ''
+$MailTo3 = ''
+$MailTo4 = ''
+$MailTo5 = ''
 $MailPortnumber = '25'
-$MailCustomer = 'Kriminalvården - IT'
-$collectionidToCheck = 'KV1000B0'
+$MailCustomer = '<sender description name>'
+$collectionidToCheck = '<collectionID>'
 
 $Logfile = "G:\Scripts\Logfiles\Logfile_$filedate.log"
 function Write-Log
@@ -194,15 +198,27 @@ if ($todayCompare -eq $ReportdayCompare)
 	$complete = 0
 	
 	
+	if ($extendedlogging -eq '0')
+	{
+		Write-Log -LogString "Send-DeviceMaintenanceWindows - Start processing all devices in collection"
+	}
+	
+	
 	# Loop for each device
 	foreach ($device in $devices)
 	{
 		$counter++
 		Write-Progress -Activity 'Processing computer' -CurrentOperation $device.Name -PercentComplete (($counter / $devices.count) * 100)
 		Start-Sleep -Milliseconds 100
-
-        $Computertotal = $devices.Count
-		Write-Log -LogString "Send-DeviceMaintenanceWindows Processing computer...$counter of $Computertotal"
+		
+		$Computertotal = $devices.Count
+		
+		if ($extendedlogging -eq '1')
+		{
+			Write-Log -LogString "Send-DeviceMaintenanceWindows Processing computer...$counter of $Computertotal"
+		}
+		
+		
 		# Get all Collections for Device
 		$collectionids = Get-CMClientDeviceCollectionMembership -ComputerName $device.name
 		
