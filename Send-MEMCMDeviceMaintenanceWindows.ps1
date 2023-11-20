@@ -23,24 +23,29 @@ These script and functions are tested in my environment and it is recommended th
 	===========================================================================
 #>
 
-$siteserver = 'vntsql0299'
-$dbserver = 'VNTSQL0310'
+$siteserver = '<siteserver>'
+$dbserver = '<extradbserver>'
 $DaysAfterPatchTuesdayToReport = '-5'
 $DisableReport = ""
 
 $filedate = get-date -Format yyyMMdd
 $HTMLFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.HTML"
 $CSVFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.csv"
-$SMTP = 'smtp.kvv.se'
-$MailFrom = 'no-reply@kvv.se'
-$MailTo1 = 'christian.damberg@kriminalvarden.se'
-$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
-$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
-$mailto4 = 'Christian.Brask@kriminalvarden.se'
-$mailto5 = 'lars.garlin@kriminalvarden.se'
+
+# Mailsettings
+$SMTP = '<smtpserver>'
+$MailFrom = '<noreplyAddress>'
+$MailTo1 = '<recipient1>'
+$MailTo2 = '<recipient2>'
+$mailto3 = '<recipient3>'
+$mailto4 = '<recipient4>'
+$mailto5 = '<recipient5>'
 $MailPortnumber = '25'
-$MailCustomer = 'Kriminalvården - IT'
-$collectionidToCheck = 'KV1000B0'
+# This add the customername in the mailsubject.
+$MailCustomer = '<Customername>'
+
+# CollectionID to get info from
+$collectionidToCheck = '<collectionID>'
 
 $Logfile = "G:\Scripts\Logfiles\Logfile_$filedate.log"
 function Write-Log
@@ -338,6 +343,9 @@ New-HTML -TitleText "Patchfönster- Kriminalvården" -FilePath $HTMLFileSavePath
 #Variable needed in html
 $collectionname = (Get-CMCollection -id $collectionidToCheck).name
 
+
+# To convert image to string base64 
+# [Convert]::ToBase64String((Get-Content -Path .\Capture.jpg -Encoding Byte)) >> capture.txt
 
 $Body = @"
 

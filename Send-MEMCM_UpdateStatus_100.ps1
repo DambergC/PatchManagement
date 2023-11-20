@@ -30,7 +30,7 @@
 $scriptname = $MyInvocation.MyCommand.Name
 
 # deployment to report updatestatus
-$deploymentIDtoCheck = '16777362'
+$deploymentIDtoCheck = '<DeploymentID>'
 
 # Number of days after patch tuesday to run the script
 $DaysAfterPatchTuesdayToReport = '3'
@@ -39,22 +39,24 @@ $DaysAfterPatchTuesdayToReport = '3'
 $DisableReport = ""
 
 # Siteserver
-$siteserver = 'vntsql0299'
+$siteserver = '<siteserver>'
 $filedate = get-date -Format yyyMMdd
 
 # Name for the fil to attach to the mail
 $HTMLFileSavePath = "c:\temp\$sitecode_UpdateStatus_$filedate.HTML"
 
 # Mailsettings
-$SMTP = 'smtp.kvv.se'
-$MailFrom = 'no-reply@kvv.se'
-$MailTo1 = 'christian.damberg@kriminalvarden.se'
-$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
-$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
-$mailto4 = 'Christian.Brask@kriminalvarden.se'
-$mailto5 = 'lars.garlin@kriminalvarden.se'
+$SMTP = '<smtpserver>'
+$MailFrom = '<noreplyAddress>'
+$MailTo1 = '<recipient1>'
+$MailTo2 = '<recipient2>'
+$mailto3 = '<recipient3>'
+$mailto4 = '<recipient4>'
+$mailto5 = '<recipient5>'
 $MailPortnumber = '25'
-$MailCustomer = 'Kriminalvården - IT'
+
+# This add the customername in the mailsubject.
+$MailCustomer = '<Customername>'
 
 # Logfile path and name
 $Logfile = "G:\Scripts\Logfiles\Logfile_$filedate.log"
