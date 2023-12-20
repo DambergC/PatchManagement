@@ -24,27 +24,23 @@ These script and functions are tested in my environment and it is recommended th
 #>
 
 $siteserver = '<siteserver>'
-$dbserver = '<extradbserver>'
-$DaysAfterPatchTuesdayToReport = '-5'
+$dbserver = '<extra_sqlserver>'
+$DaysAfterPatchTuesdayToReport = '-6'
 $DisableReport = ""
 
 $filedate = get-date -Format yyyMMdd
 $HTMLFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.HTML"
 $CSVFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.csv"
-
-# Mailsettings
-$SMTP = '<smtpserver>'
-$MailFrom = '<noreplyAddress>'
-$MailTo1 = '<recipient1>'
-$MailTo2 = '<recipient2>'
-$mailto3 = '<recipient3>'
-$mailto4 = '<recipient4>'
-$mailto5 = '<recipient5>'
+$SMTP = '<smtp>'
+$MailFrom = '<noreplyaddres>'
+$MailTo1 = '<recipient>'
+#$MailTo2 = '<recipient>'
+#$mailto3 = '<recipient>'
+#$mailto4 = '<recipient>'
+#$mailto5 = '<recipient>'
+#$mailto6 = '<recipient>'
 $MailPortnumber = '25'
-# This add the customername in the mailsubject.
-$MailCustomer = '<Customername>'
-
-# CollectionID to get info from
+$MailCustomer = 'Kriminalvården - IT'
 $collectionidToCheck = '<collectionID>'
 
 $Logfile = "G:\Scripts\Logfiles\Logfile_$filedate.log"
@@ -162,9 +158,27 @@ $ReportdayCompare = ($patchdayDefault.AddDays($DaysAfterPatchTuesdayToReport)).t
 # Date and mail section
 $todaydefault = Get-Date
 $nextmonth = $todaydefault.Month + 1
-
+$nextyear = $todayDefault.Year + 1
+If ($nextmonth = '13')
+{
+    $nextmonth = '1'
+    
+}
 $checkdatestart = Get-PatchTuesday -Month $todaydefault.Month -Year $todaydefault.Year
+
+If ($nextmonth = '13')
+{
+    $nextyear = ((get-date).Year) +1
+    
+    $checkdateend = Get-PatchTuesday -Month '1' -Year  $nextyear
+}
+
+else
+{
 $checkdateend = Get-PatchTuesday -Month $nextmonth -Year $todaydefault.Year
+
+}
+
 
 $TitleDate = get-date -DisplayHint Date
 $counter = 0
@@ -279,6 +293,7 @@ if ($todayCompare -eq $ReportdayCompare)
 	
 	$ResultColl | Export-Csv -Path $CSVFileSavePath -Encoding UTF8
 	Write-Log -LogString "Send-DeviceMaintenanceWindows File $CSVFileSavePath created"
+$ResultColl.Count
 }
 
 else
@@ -343,9 +358,6 @@ New-HTML -TitleText "Patchfönster- Kriminalvården" -FilePath $HTMLFileSavePath
 #Variable needed in html
 $collectionname = (Get-CMCollection -id $collectionidToCheck).name
 
-
-# To convert image to string base64 
-# [Convert]::ToBase64String((Get-Content -Path .\Capture.jpg -Encoding Byte)) >> capture.txt
 
 $Body = @"
 
@@ -464,6 +476,7 @@ $RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
 $RecipientList.Add([MimeKit.InternetAddress]$mailto3)
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
 $RecipientList.Add([MimeKit.InternetAddress]$mailto5)
+$RecipientList.add([MimeKit.InternetAddress]$mailto6)
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
 #$CCList.Add([MimeKit.InternetAddress]$EmailToCC)
