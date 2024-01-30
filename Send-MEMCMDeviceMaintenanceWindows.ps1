@@ -23,27 +23,27 @@ These script and functions are tested in my environment and it is recommended th
 	===========================================================================
 #>
 
-$siteserver = '<siteserver>'
-$dbserver = '<extra_sqlserver>'
+$siteserver = 'vntsql0299'
+$dbserver = 'VNTSQL0310'
 $DaysAfterPatchTuesdayToReport = '-6'
 $DisableReport = ""
 
 $filedate = get-date -Format yyyMMdd
 $HTMLFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.HTML"
 $CSVFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.csv"
-$SMTP = '<smtp>'
-$MailFrom = '<noreplyaddres>'
-$MailTo1 = '<recipient>'
-#$MailTo2 = '<recipient>'
-#$mailto3 = '<recipient>'
-#$mailto4 = '<recipient>'
-#$mailto5 = '<recipient>'
-#$mailto6 = '<recipient>'
+$SMTP = 'smtp.kvv.se'
+$MailFrom = 'no-reply@kvv.se'
+$MailTo1 = 'christian.damberg@kriminalvarden.se'
+$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
+$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
+$mailto4 = 'Christian.Brask@kriminalvarden.se'
+$mailto5 = 'lars.garlin@kriminalvarden.se'
+$mailto6 = 'Tim.Gustavsson@kriminalvarden.se'
 $MailPortnumber = '25'
 $MailCustomer = 'Kriminalvården - IT'
-$collectionidToCheck = '<collectionID>'
+$collectionidToCheck = 'KV1000B0'
 
-$Logfile = "G:\Scripts\Logfiles\Logfile_$filedate.log"
+$Logfile = "G:\Scripts\Logfiles\WindowsUpdateScript.log"
 function Write-Log
 {
 Param ([string]$LogString)
@@ -75,7 +75,7 @@ if (-not (Get-Module -name send-mailkitmessage))
 {
 	#Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
 	Import-Module send-mailkitmessage
-    Write-Log -LogString "Send-DeviceMaintenanceWindows - import send-mailkitmessage"
+   # Write-Log -LogString "Send-DeviceMaintenanceWindows - import send-mailkitmessage"
 	#write-host -ForegroundColor Green 'Send-Mailkitmessage imported'
 }
 
@@ -83,7 +83,7 @@ else
 {
 	
 	#write-host -ForegroundColor Green 'Send-Mailkitmessage already imported and installed!'
-Write-Log -LogString "Send-DeviceMaintenanceWindows - send-mailkitmessage already imported"
+#Write-Log -LogString "Send-DeviceMaintenanceWindows - send-mailkitmessage already imported"
 }
 
 
@@ -91,7 +91,7 @@ if (-not (Get-Module -name PSWriteHTML))
 {
 	#Install-Module PSWriteHTML -ErrorAction SilentlyContinue
 	Import-Module PSWriteHTML
-Write-Log -LogString "Send-DeviceMaintenanceWindows - PSwritehtml imported"
+#Write-Log -LogString "Send-DeviceMaintenanceWindows - PSwritehtml imported"
 	#write-host -ForegroundColor Green 'PSWriteHTML imported'
 }
 
@@ -99,7 +99,7 @@ else
 {
 	
 	#write-host -ForegroundColor Green 'PSWriteHTML already imported and installed!'
-Write-Log -LogString "PSwritehtml already imported"
+#Write-Log -LogString "PSwritehtml already imported"
 }
 
 
@@ -107,13 +107,13 @@ if (-not (Get-Module -name PatchManagementSupportTools))
 {
 	#Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
 	Import-Module PatchManagementSupportTools
-Write-Log -LogString "Send-DeviceMaintenanceWindows - Import Patchmanagementtools"
+#write-Log -LogString "Send-DeviceMaintenanceWindows - Import Patchmanagementtools"
 	#write-host -ForegroundColor Green 'PatchManagementSupportTools imported'
 }
 
 else
 {
-	Write-Log -LogString "Send-DeviceMaintenanceWindows - PatchManagmentTools already imported"
+	#Write-Log -LogString "Send-DeviceMaintenanceWindows - PatchManagmentTools already imported"
 	#write-host -ForegroundColor Green 'PatchManagementSupportTools already imported and installed!'
 }
 
@@ -131,12 +131,12 @@ function Get-CMSiteCode
 
 
 Get-CMModule
-Write-Log -LogString "Send-DeviceMaintenanceWindows - CMmodule imported"
+#Write-Log -LogString "Send-DeviceMaintenanceWindows - CMmodule imported"
 $sitecode = get-cmsitecode
-Write-Log -LogString "Send-DeviceMaintenanceWindows - $sitecode extracted"
+#Write-Log -LogString "Send-DeviceMaintenanceWindows - $sitecode extracted"
 $SetSiteCode = $sitecode + ":"
 Set-Location $SetSiteCode
-Write-Log -LogString "Send-DeviceMaintenanceWindows - set location to $SetSiteCode"
+#Write-Log -LogString "Send-DeviceMaintenanceWindows - set location to $SetSiteCode"
 
 <#
 	===========================================================================		
@@ -147,24 +147,21 @@ Write-Log -LogString "Send-DeviceMaintenanceWindows - set location to $SetSiteCo
 #>
 
 $todayDefault = Get-Date
-$todayCompare = (get-date).ToString("yyyy-MM-dd")
-$patchdayDefault = Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year
-$patchdayCompare = (Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year).tostring("yyyy-MM-dd")
-
-# Compare and see if the report should be run or not...
-$ReportdayCompare = ($patchdayDefault.AddDays($DaysAfterPatchTuesdayToReport)).tostring("yyyy-MM-dd")
-
-
-# Date and mail section
-$todaydefault = Get-Date
+$todayshort = $todayDefault.ToShortDateString()
+$thismonth = $todaydefault.Month
 $nextmonth = $todaydefault.Month + 1
+$patchtuesdayThisMonth = Get-PatchTuesday -Month $thismonth -Year $todayDefault.Year
+$patchtuesdayNextMonth = Get-PatchTuesday -Month $nextmonth -Year $todayDefault.Year
+$ReportdayCompare = ($patchtuesdayThisMonth.AddDays($DaysAfterPatchTuesdayToReport)).tostring("yyyy-MM-dd")
+
 $nextyear = $todayDefault.Year + 1
 If ($nextmonth = '13')
 {
     $nextmonth = '1'
     
 }
-$checkdatestart = Get-PatchTuesday -Month $todaydefault.Month -Year $todaydefault.Year
+$checkdatestart = $patchtuesdayThisMonth.ToShortDateString()
+
 
 If ($nextmonth = '13')
 {
@@ -175,10 +172,11 @@ If ($nextmonth = '13')
 
 else
 {
-$checkdateend = Get-PatchTuesday -Month $nextmonth -Year $todaydefault.Year
+$checkdateend = $patchtuesdayNextMonth.ToShortDateString()
 
 }
 
+$checkdatestart
 
 $TitleDate = get-date -DisplayHint Date
 $counter = 0
@@ -202,7 +200,7 @@ if($todayDefault.Month -in $DisableReport)
 
 #Region Script part 1 collect info from selected collection and check devices membership in Collections with Maintenance Windows
 
-if ($todayCompare -eq $ReportdayCompare)
+if ($todayshort -eq $ReportdayCompare)
 {
 	# Array to collect data in
 	$ResultColl = @()
@@ -242,7 +240,7 @@ if ($todayCompare -eq $ReportdayCompare)
 					if ($mw.RecurrenceType -eq 1)
 					{
 						# Only show Maintenance Windows waiting to run
-						if ($mw.StartTime -gt $checkdatestart -and $mw.StartTime -lt $checkdateend)
+						if ($mw.StartTime -gt $patchtuesdayThisMonth -and $mw.StartTime -lt $patchtuesdayNextMonth)
 						{
 							$computername = $device.Name
 							$query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
@@ -300,7 +298,7 @@ else
 {
 	
 	#write-host "date not equal"
-	Write-Log -LogString "Send-DeviceMaintenanceWindows - Date not equal patchtuesday $patchdayCompare and its now $todayCompare. This report will run $ReportdayCompare"
+	Write-Log -LogString "Send-DeviceMaintenanceWindows - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
 	#write-host -ForegroundColor Green "Patch tuesday is $patchdayCompare and Today it is $todayCompare and rundate for the report is $ReportdayCompare"
 	
 	set-location $PSScriptRoot
@@ -328,7 +326,7 @@ New-HTML -TitleText "Patchfönster- Kriminalvården" -FilePath $HTMLFileSavePath
 	
 	New-HTMLSection -Invisible -Title "Maintenance Windows $filedate"{
 		
-		New-HTMLTable -DataTable $ResultColl -PagingLength 25 -Style compact
+		New-HTMLTable -DataTable $ResultColl -PagingLength 35 -Style compact
 		
 	}
 	
@@ -429,7 +427,7 @@ $Body = @"
 <body>
 	<p><h1>Server Maintenance Windows - List</h1></p> 
 	<p>Bifogad fil innehåller servrar från collection $collectionname.<br><br>
-med fönster mellan $checkdatestart och $checkdateend<br>
+med fönster mellan $patchtuesdayThisMonth och $patchtuesdayNextMonth<br>
 <p>Se bifogad fil. Kom ihåg att kopiera planen till<br>
 \\kvv.se\dokument\ProjektKVS\IT_Enheten\ITIL Processer\Change\Winpatchar
 </p>
