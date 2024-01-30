@@ -23,8 +23,8 @@ These script and functions are tested in my environment and it is recommended th
 	===========================================================================
 #>
 
-$siteserver = 'vntsql0299'
-$dbserver = 'VNTSQL0310'
+$siteserver = 'xxxx'
+$dbserver = 'xxx'
 $DaysAfterPatchTuesdayToReport = '-6'
 $DisableReport = ""
 
@@ -32,15 +32,15 @@ $filedate = get-date -Format yyyMMdd
 $HTMLFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.HTML"
 $CSVFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.csv"
 $SMTP = 'smtp.kvv.se'
-$MailFrom = 'no-reply@kvv.se'
-$MailTo1 = 'christian.damberg@kriminalvarden.se'
-$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
-$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
-$mailto4 = 'Christian.Brask@kriminalvarden.se'
-$mailto5 = 'lars.garlin@kriminalvarden.se'
-$mailto6 = 'Tim.Gustavsson@kriminalvarden.se'
+$MailFrom = 'no-reply@xxx.se'
+$MailTo1 = 'xxx'
+$MailTo2 = 'xxx'
+$mailto3 = 'xxx'
+$mailto4 = 'xxx'
+$mailto5 = 'xxx'
+$mailto6 = 'xxx'
 $MailPortnumber = '25'
-$MailCustomer = 'Kriminalvården - IT'
+$MailCustomer = 'xxx - IT'
 $collectionidToCheck = 'KV1000B0'
 
 $Logfile = "G:\Scripts\Logfiles\WindowsUpdateScript.log"
