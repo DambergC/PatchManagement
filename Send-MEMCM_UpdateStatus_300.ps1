@@ -224,7 +224,7 @@ if($todayDefault.Month -in $DisableReport)
 #>
 
 
-if ($todayCompare -eq $ReportdayCompare)
+if ($todayshort -eq $ReportdayCompare)
 {
 	Write-Log -LogString "$scriptname - Script starts to collect data"
 	$UpdateStatus = Get-SCCMSoftwareUpdateStatus -DeploymentID $deploymentIDtoCheck
