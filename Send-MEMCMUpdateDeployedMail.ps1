@@ -23,6 +23,8 @@ These script and functions are tested in my environment and it is recommended th
 	===========================================================================
 #>
 
+$scriptname = $MyInvocation.MyCommand.Name
+
 # Number of days after patch tuesday to run the script
 $DaysAfterPatchTuesdayToReport = '1'
 
@@ -428,11 +430,11 @@ $From=[MimeKit.MailboxAddress]$MailFrom
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList=[MimeKit.InternetAddressList]::new()
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo1)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
-$RecipientList.add([MimeKit.InternetAddress]$mailto6)
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
+#$RecipientList.add([MimeKit.InternetAddress]$mailto6)
 
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
@@ -496,11 +498,11 @@ else
 {
 	
 	#write-host "date not equal"
-	Write-Log -LogString "Send-UpdateDeployedMail - Date not equal patchtuesday $patchdayCompare and its now $todayCompare. This report will run $ReportdayCompare"
+	Write-Log -LogString "$scriptname - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
 	#write-host -ForegroundColor Green "Patch tuesday is $patchdayCompare and Today it is $todayCompare and rundate for the report is $ReportdayCompare"
 	
 	set-location $PSScriptRoot
-	Write-Log -LogString "Send-UpdateDeployedMail - Script exit!"
+	Write-Log -LogString "$scriptname - Script exit!"
 	exit
 	
 	
