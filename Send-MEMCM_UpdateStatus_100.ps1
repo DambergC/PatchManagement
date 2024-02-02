@@ -27,10 +27,11 @@
 	DON´T EDIT!!!
 #>
 
+
 $scriptname = $MyInvocation.MyCommand.Name
 
 # deployment to report updatestatus
-$deploymentIDtoCheck = '<DeploymentID>'
+$deploymentIDtoCheck = '16777362'
 
 # Number of days after patch tuesday to run the script
 $DaysAfterPatchTuesdayToReport = '3'
@@ -39,27 +40,26 @@ $DaysAfterPatchTuesdayToReport = '3'
 $DisableReport = ""
 
 # Siteserver
-$siteserver = '<siteserver>'
+$siteserver = 'vntsql0299'
 $filedate = get-date -Format yyyMMdd
 
 # Name for the fil to attach to the mail
 $HTMLFileSavePath = "c:\temp\$sitecode_UpdateStatus_$filedate.HTML"
 
 # Mailsettings
-$SMTP = '<smtpserver>'
-$MailFrom = '<noreplyAddress>'
-$MailTo1 = '<recipient1>'
-$MailTo2 = '<recipient2>'
-$mailto3 = '<recipient3>'
-$mailto4 = '<recipient4>'
-$mailto5 = '<recipient5>'
+$SMTP = 'smtp.kvv.se'
+$MailFrom = 'no-reply@kvv.se'
+$MailTo1 = 'christian.damberg@kriminalvarden.se'
+$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
+$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
+$mailto4 = 'Christian.Brask@kriminalvarden.se'
+$mailto5 = 'lars.garlin@kriminalvarden.se'
+$mailto6 = 'Tim.Gustavsson@kriminalvarden.se'
 $MailPortnumber = '25'
-
-# This add the customername in the mailsubject.
-$MailCustomer = '<Customername>'
+$MailCustomer = 'Kriminalvården - IT'
 
 # Logfile path and name
-$Logfile = "G:\Scripts\Logfiles\Logfile_$filedate.log"
+$Logfile = "G:\Scripts\Logfiles\WindowsUpdateScript.log"
 function Write-Log
 {
 Param ([string]$LogString)
@@ -96,7 +96,7 @@ if (-not (Get-Module -name send-mailkitmessage))
 {
 	#Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
 	Import-Module send-mailkitmessage
-    Write-Log -LogString "$scriptname - import send-mailkitmessage"
+    #Write-Log -LogString "$scriptname - import send-mailkitmessage"
 	#write-host -ForegroundColor Green 'Send-Mailkitmessage imported'
 }
 
@@ -104,7 +104,7 @@ else
 {
 	
 	#write-host -ForegroundColor Green 'Send-Mailkitmessage already imported and installed!'
-Write-Log -LogString "$scriptname - send-mailkitmessage already imported"
+#Write-Log -LogString "$scriptname - send-mailkitmessage already imported"
 }
 
 
@@ -112,7 +112,7 @@ if (-not (Get-Module -name PSWriteHTML))
 {
 	#Install-Module PSWriteHTML -ErrorAction SilentlyContinue
 	Import-Module PSWriteHTML
-Write-Log -LogString "$scriptname - PSwritehtml imported"
+#Write-Log -LogString "$scriptname - PSwritehtml imported"
 	#write-host -ForegroundColor Green 'PSWriteHTML imported'
 }
 
@@ -120,7 +120,7 @@ else
 {
 	
 	#write-host -ForegroundColor Green 'PSWriteHTML already imported and installed!'
-Write-Log -LogString "$scriptname - PSwritehtml already imported"
+#Write-Log -LogString "$scriptname - PSwritehtml already imported"
 }
 
 
@@ -128,13 +128,13 @@ if (-not (Get-Module -name PatchManagementSupportTools))
 {
 	#Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
 	Import-Module PatchManagementSupportTools
-Write-Log -LogString "$scriptname - Import Patchmanagementtools"
+#Write-Log -LogString "$scriptname - Import Patchmanagementtools"
 	#write-host -ForegroundColor Green 'PatchManagementSupportTools imported'
 }
 
 else
 {
-	Write-Log -LogString "$scriptname - PatchManagmentTools already imported"
+	#Write-Log -LogString "$scriptname - PatchManagmentTools already imported"
 	#write-host -ForegroundColor Green 'PatchManagementSupportTools already imported and installed!'
 }
 
@@ -151,12 +151,12 @@ else
 $ResultColl = @()
 
 Get-CMModule
-Write-Log -LogString "$scriptname - CMmodule imported"
+#Write-Log -LogString "$scriptname - CMmodule imported"
 $sitecode = get-cmsitecode
-Write-Log -LogString "$scriptname - $sitecode extracted"
+#Write-Log -LogString "$scriptname - $sitecode extracted"
 $SetSiteCode = $sitecode + ":"
 Set-Location $SetSiteCode
-Write-Log -LogString "$scriptname - set location to $SetSiteCode"
+#Write-Log -LogString "$scriptname - set location to $SetSiteCode"
 
 <#
 	===========================================================================
@@ -179,7 +179,7 @@ if (-not (Get-Module -name send-mailkitmessage))
 {
 	#Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
 	Import-Module send-mailkitmessage
-    Write-Log -LogString "$scriptname - import send-mailkitmessage"
+   # Write-Log -LogString "$scriptname - import send-mailkitmessage"
 	#write-host -ForegroundColor Green 'Send-Mailkitmessage imported'
 }
 
@@ -187,7 +187,7 @@ else
 {
 	
 	#write-host -ForegroundColor Green 'Send-Mailkitmessage already imported and installed!'
-Write-Log -LogString "$scriptname - send-mailkitmessage already imported"
+#Write-Log -LogString "$scriptname - send-mailkitmessage already imported"
 }
 
 
@@ -195,7 +195,7 @@ if (-not (Get-Module -name PSWriteHTML))
 {
 	#Install-Module PSWriteHTML -ErrorAction SilentlyContinue
 	Import-Module PSWriteHTML
-Write-Log -LogString "$scriptname - PSwritehtml imported"
+#Write-Log -LogString "$scriptname - PSwritehtml imported"
 	#write-host -ForegroundColor Green 'PSWriteHTML imported'
 }
 
@@ -203,7 +203,7 @@ else
 {
 	
 	#write-host -ForegroundColor Green 'PSWriteHTML already imported and installed!'
-Write-Log -LogString "$scriptname - PSwritehtml already imported"
+#Write-Log -LogString "$scriptname - PSwritehtml already imported"
 }
 
 
@@ -211,25 +211,25 @@ if (-not (Get-Module -name PatchManagementSupportTools))
 {
 	#Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
 	Import-Module PatchManagementSupportTools
-Write-Log -LogString "$scriptname - Import Patchmanagementtools"
+#Write-Log -LogString "$scriptname - Import Patchmanagementtools"
 	#write-host -ForegroundColor Green 'PatchManagementSupportTools imported'
 }
 
 else
 {
-	Write-Log -LogString "$scriptname - PatchManagmentTools already imported"
+	#Write-Log -LogString "$scriptname - PatchManagmentTools already imported"
 	#write-host -ForegroundColor Green 'PatchManagementSupportTools already imported and installed!'
 }
 
 
 
 Get-CMModule
-Write-Log -LogString "$scriptname - CMmodule imported"
+#Write-Log -LogString "$scriptname - CMmodule imported"
 $sitecode = get-cmsitecode
-Write-Log -LogString "$scriptname - $sitecode extracted"
+#Write-Log -LogString "$scriptname - $sitecode extracted"
 $SetSiteCode = $sitecode + ":"
 Set-Location $SetSiteCode
-Write-Log -LogString "$scriptname - set location to $SetSiteCode"
+#Write-Log -LogString "$scriptname - set location to $SetSiteCode"
 
 <#
 	===========================================================================		
@@ -240,23 +240,42 @@ Write-Log -LogString "$scriptname - set location to $SetSiteCode"
 #>
 
 $todayDefault = Get-Date
-$todayCompare = (get-date).ToString("yyyy-MM-dd")
-$patchdayDefault = Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year
-$patchdayCompare = (Get-PatchTuesday -Month $todayDefault.Month -Year $todayDefault.Year).tostring("yyyy-MM-dd")
-
-# Compare and see if the report should be run or not...
-$ReportdayCompare = ($patchdayDefault.AddDays($DaysAfterPatchTuesdayToReport)).tostring("yyyy-MM-dd")
-
-
-# Date and mail section
-$todaydefault = Get-Date
+$todayshort = $todayDefault.ToShortDateString()
+$thismonth = $todaydefault.Month
 $nextmonth = $todaydefault.Month + 1
+$patchtuesdayThisMonth = Get-PatchTuesday -Month $thismonth -Year $todayDefault.Year
+$patchtuesdayNextMonth = Get-PatchTuesday -Month $nextmonth -Year $todayDefault.Year
+$ReportdayCompare = ($patchtuesdayThisMonth.AddDays($DaysAfterPatchTuesdayToReport)).tostring("yyyy-MM-dd")
 
-$checkdatestart = Get-PatchTuesday -Month $todaydefault.Month -Year $todaydefault.Year
-$checkdateend = Get-PatchTuesday -Month $nextmonth -Year $todaydefault.Year
+$nextyear = $todayDefault.Year + 1
+If ($nextmonth = '13')
+{
+    $nextmonth = '1'
+    
+}
+$checkdatestart = $patchtuesdayThisMonth.ToShortDateString()
+
+
+If ($nextmonth = '13')
+{
+    $nextyear = ((get-date).Year) +1
+    
+    $checkdateend = Get-PatchTuesday -Month '1' -Year  $nextyear
+}
+
+else
+{
+$checkdateend = $patchtuesdayNextMonth.ToShortDateString()
+
+}
+
+
 
 $TitleDate = get-date -DisplayHint Date
 $counter = 0
+
+
+
 
 #check if script should run or not
 
@@ -282,7 +301,7 @@ if($todayDefault.Month -in $DisableReport)
 #>
 
 
-if ($todayCompare -eq $ReportdayCompare)
+if ($todayshort -eq $ReportdayCompare)
 {
 	Write-Log -LogString "$scriptname - Script starts to collect data"
 	$UpdateStatus = Get-SCCMSoftwareUpdateStatus -DeploymentID $deploymentIDtoCheck
@@ -308,7 +327,7 @@ else
 {
 	
 	#write-host "date not equal"
-	Write-Log -LogString "$scriptname - Date not equal patchtuesday $patchdayCompare and its now $todayCompare. This report will run $ReportdayCompare"
+	Write-Log -LogString "$scriptname - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
 	#write-host -ForegroundColor Green "Patch tuesday is $patchdayCompare and Today it is $todayCompare and rundate for the report is $ReportdayCompare"
 	Write-Log -LogString "$scriptname - Script exit"
 	set-location $PSScriptRoot
@@ -488,11 +507,11 @@ $From = [MimeKit.MailboxAddress]$MailFrom
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList = [MimeKit.InternetAddressList]::new()
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo1)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
-
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
+#$RecipientList.add([MimeKit.InternetAddress]$mailto6)
 
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
