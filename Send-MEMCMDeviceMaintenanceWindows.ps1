@@ -23,6 +23,8 @@ These script and functions are tested in my environment and it is recommended th
 	===========================================================================
 #>
 
+$scriptname = $MyInvocation.MyCommand.Name
+
 $siteserver = 'vntsql0299'
 $dbserver = 'VNTSQL0310'
 $DaysAfterPatchTuesdayToReport = '-6'
@@ -298,9 +300,9 @@ else
 {
 	
 	#write-host "date not equal"
-	Write-Log -LogString "Send-DeviceMaintenanceWindows - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
+	Write-Log -LogString "$scriptname - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
 	#write-host -ForegroundColor Green "Patch tuesday is $patchdayCompare and Today it is $todayCompare and rundate for the report is $ReportdayCompare"
-	
+	Write-Log -LogString "$scriptname - Script exit!"
 	set-location $PSScriptRoot
 	
 	exit
@@ -521,8 +523,8 @@ $Parameters = @{
 #Region Send Mail
 
 Send-MailKitMessage @Parameters
-Write-Log -LogString "Send-DeviceMaintenanceWindows - Mail on it´s way to $RecipientList"
+Write-Log -LogString "$scriptname - Mail on it´s way to $RecipientList"
 set-location $PSScriptRoot
-Write-Log -LogString "Send-DeviceMaintenanceWindows - Script end!"
+Write-Log -LogString "$scriptname - Script exit!"
 
 #endregion
