@@ -22,12 +22,13 @@ These script and functions are tested in my environment and it is recommended th
 	Values needed to be updated before running the script
 	===========================================================================
 #>
-
+$scriptversion = '1.0'
 $scriptname = $MyInvocation.MyCommand.Name
 
 $siteserver = 'vntsql0299'
 $dbserver = 'VNTSQL0310'
 $DaysAfterPatchTuesdayToReport = '-6'
+#$DaysAfterPatchTuesdayToReport = '9'
 $DisableReport = ""
 
 $filedate = get-date -Format yyyMMdd
@@ -36,22 +37,51 @@ $CSVFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.csv"
 $SMTP = 'smtp.kvv.se'
 $MailFrom = 'no-reply@kvv.se'
 $MailTo1 = 'christian.damberg@kriminalvarden.se'
-$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
+#$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
 #$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
 #$mailto4 = 'Christian.Brask@kriminalvarden.se'
 #$mailto5 = 'lars.garlin@kriminalvarden.se'
-#$mailto6 = 'Tim.Gustavsson@kriminalvarden.se'
+#$MailTo6 = 'sockv@kriminalvarden.se'
+#$mailto7 = 'Tim.Gustavsson@kriminalvarden.se'
 $MailPortnumber = '25'
 $MailCustomer = 'Kriminalvården - IT'
 $collectionidToCheck = 'KV1000B0'
 
 $Logfile = "G:\Scripts\Logfiles\WindowsUpdateScript.log"
+$logfile_MW = "G:\Scripts\Logfiles\MW_Script_$filedate.log"
 function Write-Log
 {
 Param ([string]$LogString)
 $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
 $LogMessage = "$Stamp $LogString"
 Add-content $LogFile -value $LogMessage
+}
+
+function Write-MWLog
+{
+Param ([string]$LogString)
+$Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
+$LogMessage = "$Stamp $LogString"
+Add-content $logfile_MW -value $LogMessage
+}
+
+function Rotate-log 
+{
+    $target = Get-ChildItem $Logfile -Filter "windows*.log"
+    $threshold = 30
+    $datetime = Get-Date -uformat "%Y-%m-%d-%H%M"
+    $target | ForEach-Object {
+    if ($_.Length -ge $threshold) { 
+        Write-Host "file named $($_.name) is bigger than $threshold KB"
+        $newname = "$($_.BaseName)_${datetime}.log_old"
+        Rename-Item $_.fullname $newname
+        Write-Host "Done rotating file" 
+    }
+    else{
+         Write-Host "file named $($_.name) is not bigger than $threshold KB"
+    }
+    Write-Host " "
+}
 }
 
 
@@ -77,15 +107,6 @@ if (-not (Get-Module -name send-mailkitmessage))
 {
 	#Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
 	Import-Module send-mailkitmessage
-   # Write-Log -LogString "Send-DeviceMaintenanceWindows - import send-mailkitmessage"
-	#write-host -ForegroundColor Green 'Send-Mailkitmessage imported'
-}
-
-else
-{
-	
-	#write-host -ForegroundColor Green 'Send-Mailkitmessage already imported and installed!'
-#Write-Log -LogString "Send-DeviceMaintenanceWindows - send-mailkitmessage already imported"
 }
 
 
@@ -93,35 +114,13 @@ if (-not (Get-Module -name PSWriteHTML))
 {
 	#Install-Module PSWriteHTML -ErrorAction SilentlyContinue
 	Import-Module PSWriteHTML
-#Write-Log -LogString "Send-DeviceMaintenanceWindows - PSwritehtml imported"
-	#write-host -ForegroundColor Green 'PSWriteHTML imported'
 }
-
-else
-{
-	
-	#write-host -ForegroundColor Green 'PSWriteHTML already imported and installed!'
-#Write-Log -LogString "PSwritehtml already imported"
-}
-
 
 if (-not (Get-Module -name PatchManagementSupportTools))
 {
 	#Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
 	Import-Module PatchManagementSupportTools
-#write-Log -LogString "Send-DeviceMaintenanceWindows - Import Patchmanagementtools"
-	#write-host -ForegroundColor Green 'PatchManagementSupportTools imported'
 }
-
-else
-{
-	#Write-Log -LogString "Send-DeviceMaintenanceWindows - PatchManagmentTools already imported"
-	#write-host -ForegroundColor Green 'PatchManagementSupportTools already imported and installed!'
-}
-
-
-
-
 
 #endregion
 
@@ -208,12 +207,11 @@ if ($todayshort -eq $ReportdayCompare)
 	$ResultColl = @()
 	$ResultMissing = @()
 	# Devices
-	$devices = Get-CMCollectionMember -CollectionId $collectionidToCheck
-	Write-Log -LogString "Send-DeviceMaintenanceWindows - Date is correct, will run script"
-	
+
+    $devices = Get-CMCollectionMember -CollectionId $collectionidToCheck
+	Write-Log -LogString "$scriptname - Date is correct, will run script"
 	# For the progressbar
 	$complete = 0
-	
 	
 	# Loop for each device
 	foreach ($device in $devices)
@@ -221,16 +219,24 @@ if ($todayshort -eq $ReportdayCompare)
 		$counter++
 		Write-Progress -Activity 'Processing computer' -CurrentOperation $device.Name -PercentComplete (($counter / $devices.count) * 100)
 		Start-Sleep -Milliseconds 100
+        
+        $Devicename = $device.name
 
         $Computertotal = $devices.Count
-		Write-Log -LogString "Send-DeviceMaintenanceWindows Processing computer...$counter of $Computertotal"
+		Write-MWLog -LogString "$scriptname - Processing computer...$Devicename -  $counter of $Computertotal"
 		# Get all Collections for Device
-		$collectionids = Get-CMClientDeviceCollectionMembership -ComputerName $device.name
-		
+
+        try
+            {
+    	        $collectionids = Get-CMClientDeviceCollectionMembership -ComputerName $Devicename -SiteServer $siteserver -SiteCode $sitecode
+	        }
+        catch
+            {
+                Write-Log -LogString "Can´t get any collectionid for $Devicename $_"
+            }
 		# Check every Collection for Maintenance windows
 		foreach ($collectionid in $collectionids)
 		{
-			
 			# Only include Collections with Maintenance Windows
 			if ($collectionid.ServiceWindowsCount -gt 0)
 			{
@@ -238,15 +244,18 @@ if ($todayshort -eq $ReportdayCompare)
 				
 				foreach ($mw in $MWs)
 				{
-					
 					if ($mw.RecurrenceType -eq 1)
 					{
 						# Only show Maintenance Windows waiting to run
 						if ($mw.StartTime -gt $patchtuesdayThisMonth -and $mw.StartTime -lt $patchtuesdayNextMonth)
 						{
 							$computername = $device.Name
-							$query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
-							$data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
+
+                            $query = "SELECT applikation FROM tblinmatning WHERE skrotad=0 AND servernamn='$Computername'"
+                            Write-MWLog -LogString "Query against extra db run $computername"
+            
+            				$data = Invoke-Sqlcmd -ServerInstance $dbserver -Database serverlista -Query $query
+
 							$Startdatum = ($mw.StartTime).ToString("yyyy-MM-dd")
 							$starttid = ($mw.StartTime).ToString("hh:mm")
 							
@@ -259,7 +268,6 @@ if ($todayshort -eq $ReportdayCompare)
 							$object | Add-Member -MemberType NoteProperty -Name 'Deployment' -Value $collectionid.name
 							$resultColl += $object
 						}
-						
 					}
 					
 					if ($mw.RecurrenceType -eq 3)
@@ -283,31 +291,23 @@ if ($todayshort -eq $ReportdayCompare)
 					
 					
 				}
-				
-				
 			}
-			
-		}
+    	}
 	}
 	
 	
 	$ResultColl | Export-Csv -Path $CSVFileSavePath -Encoding UTF8
-	Write-Log -LogString "Send-DeviceMaintenanceWindows File $CSVFileSavePath created"
-$ResultColl.Count
+	Write-Log -LogString "$scriptname - File $CSVFileSavePath created"
+    $ResultColl.Count
 }
 
 else
 {
-	
-	#write-host "date not equal"
 	Write-Log -LogString "$scriptname - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
-	#write-host -ForegroundColor Green "Patch tuesday is $patchdayCompare and Today it is $todayCompare and rundate for the report is $ReportdayCompare"
 	Write-Log -LogString "$scriptname - Script exit!"
+    
 	set-location $PSScriptRoot
-	
-	exit
-	
-	
+	exit	
 }
 
 
@@ -472,11 +472,12 @@ $From = [MimeKit.MailboxAddress]$MailFrom
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList = [MimeKit.InternetAddressList]::new()
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo1)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
+#$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
 #$RecipientList.Add([MimeKit.InternetAddress]$mailto3)
 #$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
 #$RecipientList.Add([MimeKit.InternetAddress]$mailto5)
 #$RecipientList.add([MimeKit.InternetAddress]$mailto6)
+#$RecipientList.add([MimeKit.InternetAddress]$mailto7)
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
 #$CCList.Add([MimeKit.InternetAddress]$EmailToCC)
@@ -526,5 +527,5 @@ Send-MailKitMessage @Parameters
 Write-Log -LogString "$scriptname - Mail on it´s way to $RecipientList"
 set-location $PSScriptRoot
 Write-Log -LogString "$scriptname - Script exit!"
-
+Write-MWLog -LogString "Script done!"
 #endregion
