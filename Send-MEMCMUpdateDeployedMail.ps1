@@ -49,7 +49,8 @@ $MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
 $mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
 $mailto4 = 'Christian.Brask@kriminalvarden.se'
 $mailto5 = 'lars.garlin@kriminalvarden.se'
-$mailto6 = 'Tim.Gustavsson@kriminalvarden.se'
+$MailTo6 = 'sockv@kriminalvarden.se'
+$mailto7 = 'Tim.Gustavsson@kriminalvarden.se'
 $MailSMTP = 'smtp.kvv.se'
 $MailPortnumber = '25'
 $MailCustomer = 'Kriminalvården'
@@ -430,11 +431,12 @@ $From=[MimeKit.MailboxAddress]$MailFrom
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList=[MimeKit.InternetAddressList]::new()
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo1)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
-#$RecipientList.add([MimeKit.InternetAddress]$mailto6)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
+$RecipientList.add([MimeKit.InternetAddress]$mailto6)
+$RecipientList.add([MimeKit.InternetAddress]$mailto7)
 
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
