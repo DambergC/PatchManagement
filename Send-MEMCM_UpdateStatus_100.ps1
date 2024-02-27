@@ -35,7 +35,7 @@ $deploymentIDtoCheck = '16777362'
 
 # Number of days after patch tuesday to run the script
 $DaysAfterPatchTuesdayToReport = '3'
-
+#$DaysAfterPatchTuesdayToReport = '8'
 # If any month are exluded "1","2" equals january and februari exluded
 $DisableReport = ""
 
@@ -44,7 +44,7 @@ $siteserver = 'vntsql0299'
 $filedate = get-date -Format yyyMMdd
 
 # Name for the fil to attach to the mail
-$HTMLFileSavePath = "c:\temp\$sitecode_UpdateStatus_$filedate.HTML"
+$HTMLFileSavePath = "G:\Scripts\Outfiles\$sitecode_UpdateStatus_$filedate.HTML"
 
 # Mailsettings
 $SMTP = 'smtp.kvv.se'
@@ -54,7 +54,8 @@ $MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
 $mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
 $mailto4 = 'Christian.Brask@kriminalvarden.se'
 $mailto5 = 'lars.garlin@kriminalvarden.se'
-$mailto6 = 'Tim.Gustavsson@kriminalvarden.se'
+$MailTo6 = 'sockv@kriminalvarden.se'
+$mailto7 = 'Tim.Gustavsson@kriminalvarden.se'
 $MailPortnumber = '25'
 $MailCustomer = 'Kriminalvården - IT'
 
@@ -339,8 +340,9 @@ else
 
 # Create vaules to the report
 
-$errorvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'error') }).count
+$errorUnknownvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'error' -or $_.status -eq 'unknown' -or $_.status -eq 'Inprogress') }).count
 $successvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'success') }).count
+$ToCheck = $UpdateStatus | Where-Object { ($_.status -eq 'error' -or $_.status -eq 'unknown' -or $_.status -eq 'Inprogress') } | ConvertTo-Html
 $colletionname = $UpdateStatus.collectionname | Select-Object -First 1
 
 <#
@@ -366,8 +368,8 @@ New-HTML -TitleText "Uppdatering Status - Kriminalvården" -FilePath $HTMLFileSa
 				New-ChartLegend -LegendPosition bottom -HorizontalAlign right -Color red, darkgreen -DisableOnItemClickToggleDataSeries -DisableOnItemHoverHighlightDataSeries
 				New-ChartAxisY -LabelMaxWidth 100 -LabelAlign left -Show -LabelFontColor red, darkgreen -TitleText 'Status' -TitleColor Red
 				New-ChartBarOptions -Distributed
-				New-ChartBar -Name 'Error' -Value $errorvalue
-				New-ChartBar -name 'Success' -Value $successvalue
+				New-ChartBar -Name 'Needs attention' -Value $errorUnknownvalue
+                New-ChartBar -name 'Success' -Value $successvalue
 			} -Title 'Resultat av patchning' -TitleAlignment center -SubTitle $colletionname -SubTitleAlignment center -SubTitleFontSize 20 -TitleColor Darkblue
 		}
 		
@@ -469,6 +471,9 @@ SRC="data:image/jpg;base64,/9j/4AAQSkZJRgABAQEAWgBaAAD/4gKwSUNDX1BST0ZJTEUAAQEAA
 	<p><h1>Uppdatering Status</h1></p> 
 	<p>Bifogade fil innehåller Status för servrar:</p>
     <p> Collection: $colletionname </p>
+    <p> Need Attention: $errorUnknownvalue </p>
+    <p> Success: $successvalue </p>
+    <p> $ToCheck </p>
 
 <hr>
 </p> 
@@ -507,11 +512,12 @@ $From = [MimeKit.MailboxAddress]$MailFrom
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList = [MimeKit.InternetAddressList]::new()
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo1)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
-#$RecipientList.add([MimeKit.InternetAddress]$mailto6)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
+$RecipientList.add([MimeKit.InternetAddress]$mailto6)
+$RecipientList.add([MimeKit.InternetAddress]$mailto7)
 
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
