@@ -18,11 +18,15 @@
 
 <#
 	===========================================================================
-	Parameters needed in the script
+	Powershell modules needed in the script
 	===========================================================================
 
-	Here youy may edit what you need to make the script working in your environment.
+	Send-MailkitMessage - https://github.com/austineric/Send-MailKitMessage
+	pswritehtml - https://github.com/EvotecIT/PSWriteHTML
+
+	DON´T EDIT!!!
 #>
+
 
 $scriptname = $MyInvocation.MyCommand.Name
 
@@ -31,7 +35,7 @@ $deploymentIDtoCheck = '16777363'
 
 # Number of days after patch tuesday to run the script
 $DaysAfterPatchTuesdayToReport = '9'
-
+#$DaysAfterPatchTuesdayToReport = '8'
 # If any month are exluded "1","2" equals january and februari exluded
 $DisableReport = ""
 
@@ -40,7 +44,7 @@ $siteserver = 'vntsql0299'
 $filedate = get-date -Format yyyMMdd
 
 # Name for the fil to attach to the mail
-$HTMLFileSavePath = "c:\temp\$sitecode_UpdateStatus_$filedate.HTML"
+$HTMLFileSavePath = "G:\Scripts\Outfiles\$sitecode_UpdateStatus_$filedate.HTML"
 
 # Mailsettings
 $SMTP = 'smtp.kvv.se'
@@ -50,7 +54,8 @@ $MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
 $mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
 $mailto4 = 'Christian.Brask@kriminalvarden.se'
 $mailto5 = 'lars.garlin@kriminalvarden.se'
-$mailto6 = 'Tim.Gustavsson@kriminalvarden.se'
+$MailTo6 = 'sockv@kriminalvarden.se'
+$mailto7 = 'Tim.Gustavsson@kriminalvarden.se'
 $MailPortnumber = '25'
 $MailCustomer = 'Kriminalvården - IT'
 
@@ -71,6 +76,88 @@ function Get-CMSiteCode
 	return $CMSiteCode
 }
 
+<#
+	===========================================================================
+	Powershell modules needed in the script
+	===========================================================================
+
+	Send-MailkitMessage - https://github.com/austineric/Send-MailKitMessage
+
+	pswritehtml - https://github.com/EvotecIT/PSWriteHTML
+
+	PatchManagementSupportTools - Created by Christian Damberg, Cygate
+	https://github.com/DambergC/PatchManagement/tree/main/PatchManagementSupportTools
+
+	DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!
+#>
+
+#region modules
+
+if (-not (Get-Module -name send-mailkitmessage))
+{
+	#Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
+	Import-Module send-mailkitmessage
+    #Write-Log -LogString "$scriptname - import send-mailkitmessage"
+	#write-host -ForegroundColor Green 'Send-Mailkitmessage imported'
+}
+
+else
+{
+	
+	#write-host -ForegroundColor Green 'Send-Mailkitmessage already imported and installed!'
+#Write-Log -LogString "$scriptname - send-mailkitmessage already imported"
+}
+
+
+if (-not (Get-Module -name PSWriteHTML))
+{
+	#Install-Module PSWriteHTML -ErrorAction SilentlyContinue
+	Import-Module PSWriteHTML
+#Write-Log -LogString "$scriptname - PSwritehtml imported"
+	#write-host -ForegroundColor Green 'PSWriteHTML imported'
+}
+
+else
+{
+	
+	#write-host -ForegroundColor Green 'PSWriteHTML already imported and installed!'
+#Write-Log -LogString "$scriptname - PSwritehtml already imported"
+}
+
+
+if (-not (Get-Module -name PatchManagementSupportTools))
+{
+	#Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
+	Import-Module PatchManagementSupportTools
+#Write-Log -LogString "$scriptname - Import Patchmanagementtools"
+	#write-host -ForegroundColor Green 'PatchManagementSupportTools imported'
+}
+
+else
+{
+	#Write-Log -LogString "$scriptname - PatchManagmentTools already imported"
+	#write-host -ForegroundColor Green 'PatchManagementSupportTools already imported and installed!'
+}
+
+#endregion
+
+<#
+	===========================================================================
+	Parameters needed in the script
+	===========================================================================
+
+	Here youy may edit what you need to make the script working in your environment.
+#>
+
+$ResultColl = @()
+
+Get-CMModule
+#Write-Log -LogString "$scriptname - CMmodule imported"
+$sitecode = get-cmsitecode
+#Write-Log -LogString "$scriptname - $sitecode extracted"
+$SetSiteCode = $sitecode + ":"
+Set-Location $SetSiteCode
+#Write-Log -LogString "$scriptname - set location to $SetSiteCode"
 
 <#
 	===========================================================================
@@ -87,17 +174,55 @@ function Get-CMSiteCode
 	DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!DON´T EDIT!!!
 #>
 
+#region modules
+
+if (-not (Get-Module -name send-mailkitmessage))
+{
+	#Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
+	Import-Module send-mailkitmessage
+   # Write-Log -LogString "$scriptname - import send-mailkitmessage"
+	#write-host -ForegroundColor Green 'Send-Mailkitmessage imported'
+}
+
+else
+{
+	
+	#write-host -ForegroundColor Green 'Send-Mailkitmessage already imported and installed!'
+#Write-Log -LogString "$scriptname - send-mailkitmessage already imported"
+}
 
 
-<#
-	===========================================================================
-	Parameters needed in the script
-	===========================================================================
+if (-not (Get-Module -name PSWriteHTML))
+{
+	#Install-Module PSWriteHTML -ErrorAction SilentlyContinue
+	Import-Module PSWriteHTML
+#Write-Log -LogString "$scriptname - PSwritehtml imported"
+	#write-host -ForegroundColor Green 'PSWriteHTML imported'
+}
 
-	Here youy may edit what you need to make the script working in your environment.
-#>
+else
+{
+	
+	#write-host -ForegroundColor Green 'PSWriteHTML already imported and installed!'
+#Write-Log -LogString "$scriptname - PSwritehtml already imported"
+}
 
-$ResultColl = @()
+
+if (-not (Get-Module -name PatchManagementSupportTools))
+{
+	#Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
+	Import-Module PatchManagementSupportTools
+#Write-Log -LogString "$scriptname - Import Patchmanagementtools"
+	#write-host -ForegroundColor Green 'PatchManagementSupportTools imported'
+}
+
+else
+{
+	#Write-Log -LogString "$scriptname - PatchManagmentTools already imported"
+	#write-host -ForegroundColor Green 'PatchManagementSupportTools already imported and installed!'
+}
+
+
 
 Get-CMModule
 #Write-Log -LogString "$scriptname - CMmodule imported"
@@ -145,8 +270,13 @@ $checkdateend = $patchtuesdayNextMonth.ToShortDateString()
 
 }
 
+
+
 $TitleDate = get-date -DisplayHint Date
 $counter = 0
+
+
+
 
 #check if script should run or not
 
@@ -210,8 +340,9 @@ else
 
 # Create vaules to the report
 
-$errorvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'error') }).count
+$errorUnknownvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'error' -or $_.status -eq 'unknown' -or $_.status -eq 'Inprogress') }).count
 $successvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'success') }).count
+$ToCheck = $UpdateStatus | Where-Object { ($_.status -eq 'error' -or $_.status -eq 'unknown' -or $_.status -eq 'Inprogress') } | ConvertTo-Html
 $colletionname = $UpdateStatus.collectionname | Select-Object -First 1
 
 <#
@@ -237,8 +368,8 @@ New-HTML -TitleText "Uppdatering Status - Kriminalvården" -FilePath $HTMLFileSa
 				New-ChartLegend -LegendPosition bottom -HorizontalAlign right -Color red, darkgreen -DisableOnItemClickToggleDataSeries -DisableOnItemHoverHighlightDataSeries
 				New-ChartAxisY -LabelMaxWidth 100 -LabelAlign left -Show -LabelFontColor red, darkgreen -TitleText 'Status' -TitleColor Red
 				New-ChartBarOptions -Distributed
-				New-ChartBar -Name 'Error' -Value $errorvalue
-				New-ChartBar -name 'Success' -Value $successvalue
+				New-ChartBar -Name 'Needs attention' -Value $errorUnknownvalue
+                New-ChartBar -name 'Success' -Value $successvalue
 			} -Title 'Resultat av patchning' -TitleAlignment center -SubTitle $colletionname -SubTitleAlignment center -SubTitleFontSize 20 -TitleColor Darkblue
 		}
 		
@@ -340,6 +471,9 @@ SRC="data:image/jpg;base64,/9j/4AAQSkZJRgABAQEAWgBaAAD/4gKwSUNDX1BST0ZJTEUAAQEAA
 	<p><h1>Uppdatering Status</h1></p> 
 	<p>Bifogade fil innehåller Status för servrar:</p>
     <p> Collection: $colletionname </p>
+    <p> Need Attention: $errorUnknownvalue </p>
+    <p> Success: $successvalue </p>
+    <p> $ToCheck </p>
 
 <hr>
 </p> 
@@ -383,6 +517,7 @@ $RecipientList.Add([MimeKit.InternetAddress]$MailTo3)
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo5)
 $RecipientList.add([MimeKit.InternetAddress]$mailto6)
+$RecipientList.add([MimeKit.InternetAddress]$mailto7)
 
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
@@ -425,8 +560,8 @@ $Parameters = @{
 	"AttachmentList"				 = $AttachmentList
 }
 
-Write-Log -LogString "$scriptname - Script send mail to $RecipientList"
 
+Write-Log -LogString "$scriptname - Script send mail to $RecipientList"
 Send-MailKitMessage @Parameters
 
 set-location $PSScriptRoot
