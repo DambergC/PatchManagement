@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<Configuration>
+	<RunScript>
+		<Job DeploymentID="16777362" Offsetdays="3" Description="Grupp 100"/>
+		<Job DeploymentID="16777363" Offsetdays="9" Description="Grupp 200"/>
+		<Job DeploymentID="16777364" Offsetdays="16" Description="Grupp 300"/>
+	</RunScript>
+	<DisableReportMonth>
+		<DisableReportMonth Number=""/>
+		<DisableReportMonth Number=""/>
+		<DisableReportMonth Number=""/>
+	</DisableReportMonth>
+	<Recipients>
+		<Recipients email="christian.damberg@kriminalvarden.se"/>
+		<Recipients email="christian.damberg2@kriminalvarden.se"/>
+	</Recipients>
+	<SiteServer>vntsql0299</SiteServer>
+	<Mailfrom>no-reply@kvv.se</Mailfrom>
+	<MailSMTP>smtp.kvv.se</MailSMTP>
+	<MailPort>25</MailPort>
+	<MailCustomer>Kriminalvården - IT</MailCustomer>
+</Configuration>
