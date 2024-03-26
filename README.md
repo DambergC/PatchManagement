@@ -17,4 +17,4 @@ PreReq:
 ## Mail with reports
 I´ve created some scripts to be used to generate reports and send by mail to recipients.
 
-More info in the folder 
+More info in the folder <https://github.com/DambergC/PatchManagement/tree/main/MailUpdateStatus>
