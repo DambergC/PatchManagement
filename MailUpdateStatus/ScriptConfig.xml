@@ -17,22 +17,17 @@
 		<DisableReportMonth Number=""/>
 	</DisableReportMonth>
 	<Recipients>
-		<Recipients email="christian.damberg@kriminalvarden.se"/>
-		<Recipients email="Joakim.Stenqvist@kriminalvarden.se"/>
-		<Recipients email="Julia.Hultkvist@kriminalvarden.se"/>
-		<Recipients email="Christian.Brask@kriminalvarden.se"/>
-		<Recipients email="lars.garlin@kriminalvarden.se"/>
-		<Recipients email="sockv@kriminalvarden.se"/>
-		<Recipients email="Tim.Gustavsson@kriminalvarden.se"/>
+		<Recipients email="user1@company.com"/>
+		<Recipients email="user1@company.com"/>
 	</Recipients>
 	<UpdateDeployed>
 		<LimitDays>-25</LimitDays>
 		<UpdateGroupName>Server Patch Tuesday</UpdateGroupName>
 		<DaysAfterPatchToRun>1</DaysAfterPatchToRun>
 	</UpdateDeployed>
-	<SiteServer>vntsql0299</SiteServer>
-	<Mailfrom>no-reply@kvv.se</Mailfrom>
-	<MailSMTP>smtp.kvv.se</MailSMTP>
+	<SiteServer>Siteservername</SiteServer>
+	<Mailfrom>no-reply@kcompany.com</Mailfrom>
+	<MailSMTP>smtp.company.com</MailSMTP>
 	<MailPort>25</MailPort>
-	<MailCustomer>Kriminalvarden - IT</MailCustomer>
+	<MailCustomer>Company INC</MailCustomer>
 </Configuration>
