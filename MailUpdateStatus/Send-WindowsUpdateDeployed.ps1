@@ -391,7 +391,7 @@ $Parameters=@{
 #########################################################
 #send email
 #########################################################
-#Send-MailKitMessage @Parameters
+Send-MailKitMessage @Parameters
 
 Write-Log -LogString "========================== $scriptname - Mail on it´s way to $RecipientList "
 set-location $PSScriptRoot
