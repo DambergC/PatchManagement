@@ -1,9 +1,15 @@
 <?xml version="1.0"?>
 <Configuration>
+	<Logfile>
+		<Path>G:\Scripts\Logfiles\</Path>
+		<Name>WindowsUpdateScript.log</Name>
+		<Logfilethreshold>2000000</Logfilethreshold>
+	</Logfile>
+	<HTMLfilePath>G:\Scripts\OutFiles\</HTMLfilePath>
 	<RunScript>
-		<Job DeploymentID="16777362" Offsetdays="3" Description="Grupp 100"/>
-		<Job DeploymentID="16777363" Offsetdays="9" Description="Grupp 200"/>
-		<Job DeploymentID="16777364" Offsetdays="16" Description="Grupp 300"/>
+		<Job DeploymentID="16777362" Offsetdays="2" Description="Grupp100"/>
+		<Job DeploymentID="16777363" Offsetdays="8" Description="Grupp200"/>
+		<Job DeploymentID="16777364" Offsetdays="14" Description="Grupp300"/>
 	</RunScript>
 	<DisableReportMonth>
 		<DisableReportMonth Number=""/>
@@ -12,7 +18,11 @@
 	</DisableReportMonth>
 	<Recipients>
 		<Recipients email="christian.damberg@kriminalvarden.se"/>
-		<Recipients email="christian.damberg2@kriminalvarden.se"/>
+		<Recipients email="Julia.Hultkvist@kriminalvarden.se"/>
+		<Recipients email="Christian.Brask@kriminalvarden.se"/>
+		<Recipients email="lars.garlin@kriminalvarden.se"/>
+		<Recipients email="sockv@kriminalvarden.se"/>
+		<Recipients email="Tim.Gustavsson@kriminalvarden.se"/>
 	</Recipients>
 	<SiteServer>vntsql0299</SiteServer>
 	<Mailfrom>no-reply@kvv.se</Mailfrom>
