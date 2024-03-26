@@ -5,7 +5,7 @@ I created these scripts to facilitate the work of monitoring the status of Windo
 With the script, you don't have to sit and work more than necessary when it comes to keeping track of the patches every month.
 ## scriptconfig.xml
 The first file in the folder is "scriptconfig.xml" which contains everything the scripts need to run. With that file, you don't have to open and edit any of the script more than necessary, or rather only if you can rename "scriptconfig.xml" to something else or put it somewhere else...but why ?
-|XML Element|explanation|
+| XML Element | explanation |
 ## Send-WindowsUpdateDeployed.ps1
 This script runs a check against an Update Group in ConfigMgr and retrieves all patches that have been published in the last x-numbers of days (the value is in scriptconfig.xml)
 ## Send-WindowsUpdateStatus.ps1
