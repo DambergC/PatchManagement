@@ -3,16 +3,17 @@
 		Updatestatus for Windows update thru MECM
 	
 	.DESCRIPTION
-		This script creates a e-mail with status forwindows update. The script works with a xml and can check multiple deployments and send mail to multiple recipients.
+		The script create a a report on windows update for one or more deployments of updates specified in a xml file and sends a email to named recipients.
+		The script can run manually or scheduled on siteserver.
 	
 	.NOTES
 		===========================================================================
-		Created with: 	SAPIEN Technologies, Inc., PowerShell Studio 2023 v5.8.232
+		Created with: 	SAPIEN Technologies, Inc., PowerShell Studio 2024
 		Created on:   	10/16/2023 3:34 PM
 		Updated on:     03/25/2024 4:00 PM
 		Created by:   	Christian Damberg
 		Organization:	Telia Cygate AB
-		Filename:		Send-MEMCMUpdateStatus.ps1
+		Filename:	Send-WindowsUpdateStatus.ps1
 		===========================================================================
 #>
 
