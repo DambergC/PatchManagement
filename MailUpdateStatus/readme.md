@@ -25,4 +25,4 @@ The script produces a report for a Windows Update Deployment in ConfigMgr which 
 
 The script can work with multiple deployments. Values ​​for which deployment and x-number of days after Patch Tuesday are controlled via "scriptconfig.xml"
 ## Extra in script
-Extra i skripten är att det finns funktion för loghantering och det som jag lagt till är att när logfilen som tillhör skripten kommer över x-antal bytes (2000000 default) så byter den  namn och flyttas. Detta för att underlätta hanteringen av logfilen.
+In the scripts, there is a function for log management and what I added is that when the log file that is created and written in by the script exceeds x-number of bytes (2000000 bytes default), it is renamed and moved. This is to facilitate the handling of the log file.
