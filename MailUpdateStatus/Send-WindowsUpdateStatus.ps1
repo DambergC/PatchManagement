@@ -13,17 +13,21 @@
 		Updated on:     03/25/2024 4:00 PM
 		Created by:   	Christian Damberg
 		Organization:	Telia Cygate AB
-		Filename:	Send-WindowsUpdateStatus.ps1
+		Filename:	    Send-WindowsUpdateStatus.ps1
 		===========================================================================
 #>
 
 [System.Xml.XmlDocument]$xml = Get-Content .\ScriptConfig.xml
-$HTMLFileSavePath = "G:\Scripts\Outfiles\$sitecode_UpdateStatus_$filedate.HTML" # Path to attached file
-$Logfile = "G:\Scripts\Logfiles\WindowsUpdateScript.log" # Logfile
+
+$Logfilepath = $xml.Configuration.Logfile.Path
+$logfilename = $xml.Configuration.Logfile.Name
+$Logfile = $Logfilepath + $logfilename
+$Logfilethreshold = $xml.Configuration.Logfile.Logfilethreshold
+
 
 $XMLREAD = $xml.Configuration.Runscript.Job
 $scriptname = $MyInvocation.MyCommand.Name
-$DisableReport = $xml.Configuration.DisableReportMonth | ForEach-Object { $_.DisableReportMonth.Number }
+$DisableReport = $xml.Configuration.DisableReportMonth | ForEach-Object {$_.DisableReportMonth.Number}
 $siteserver = $xml.Configuration.SiteServer
 $filedate = get-date -Format yyyMMdd
 $SMTP = $xml.Configuration.MailSMTP
@@ -31,45 +35,83 @@ $MailFrom = $xml.Configuration.Mailfrom
 $MailPortnumber = $xml.Configuration.MailPort
 $MailCustomer = $xml.Configuration.MailCustomer
 
+function Rotate-Log 
+    {
+        $target = Get-ChildItem $Logfilepath -Filter "windo*.log"
+        $datetime = Get-Date -uformat "%Y-%m-%d-%H%M"
+        
+        $target | ForEach-Object {
+            
+            if ($_.Length -ge $Logfilethreshold) 
+            { 
+                Write-Host "file named $($_.name) is bigger than $Logfilethreshold B"
+                $newname = "$($_.BaseName)_${datetime}.log"
+                Rename-Item $_.fullname $newname
+
+                    if (test-path "$Logfilepath\OLDLOG") 
+                    {
+                        Move-Item .\logfiles\$newname -Destination "$Logfilepath\OLDLOG"
+                        Write-Host "Done rotating file"
+                    }
+
+                    else
+
+                    {
+                        new-item -Path $Logfilepath -Name OLDLOG -ItemType Directory
+                        Move-Item .\logfiles\$newname -Destination "$Logfilepath\OLDLOG"
+                        Write-Host "Done rotating file"
+                    }
+             }
+            
+            else
+                {
+                     Write-Host "file named $($_.name) is not bigger than $Logfilethreshold B"
+                }
+            Write-Host "Logfile checked!"
+        }
+    }
+
+Rotate-Log
+
 Function Write-Log
-{
-	param (
-		[String]$LogString
-	)
-	
-	$Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
-	$LogMessage = "$Stamp $LogString"
-	Add-content $LogFile -value $LogMessage
-}
+    {
+    param (
+        [String]$LogString
+        )
+    
+    $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
+    $LogMessage = "$Stamp $LogString"
+    Add-content $LogFile -value $LogMessage
+    }
 
 Function Get-CMSiteCode
-{
-	$CMSiteCode = Get-WmiObject -Namespace "root\SMS" -Class SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
-	return $CMSiteCode
-}
+    {
+        $CMSiteCode = Get-WmiObject -Namespace "root\SMS" -Class SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
+    	return $CMSiteCode
+    }
 
 # Send-MailkitMessage - https://github.com/austineric/Send-MailKitMessage
 if (-not (Get-Module -name send-mailkitmessage))
-{
-	#Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
-	Import-Module send-mailkitmessage
-}
+    {
+        #Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
+    	Import-Module send-mailkitmessage
+    }
 
 # pswritehtml - https://github.com/EvotecIT/PSWriteHTML
 if (-not (Get-Module -name PSWriteHTML))
-{
-	#Install-Module PSWriteHTML -ErrorAction SilentlyContinue
-	Import-Module PSWriteHTML
-}
+    {
+        #Install-Module PSWriteHTML -ErrorAction SilentlyContinue
+    	Import-Module PSWriteHTML
+    }
 
 # PatchManagementSupportTools - Created by Christian Damberg, Cygate
 # https://github.com/DambergC/PatchManagement/tree/main/PatchManagementSupportTools
 
 if (-not (Get-Module -name PatchManagementSupportTools))
-{
-	#Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
-	Import-Module PatchManagementSupportTools
-}
+    {
+        #Install-Module PatchManagementSupportTools -ErrorAction SilentlyContinue
+    	Import-Module PatchManagementSupportTools
+    }
 
 Get-CMModule
 $sitecode = get-cmsitecode
@@ -83,7 +125,7 @@ Set-Location $SetSiteCode
 	DON┤T EDIT!!!DON┤T EDIT!!!DON┤T EDIT!!!DON┤T EDIT!!!DON┤T EDIT!!!DON┤T EDIT!!!
 	===========================================================================
 #>
-Write-Log -LogString "=========================== $scriptname - Script START ================================="
+Write-Log -LogString "============================== $scriptname - Script START ====================================="
 
 $ParametersNode = $xml.configuration.Runscript.SelectNodes('//Job')
 $todayDefault = Get-Date
@@ -97,24 +139,24 @@ $nextyear = $todayDefault.Year + 1
 
 If ($nextmonth = '13')
 {
-	$nextmonth = '1'
+    $nextmonth = '1'
 }
 If ($nextmonth = '13')
 {
-	$nextyear = ((get-date).Year) + 1
-	$checkdateend = Get-PatchTuesday -Month '1' -Year $nextyear
+    $nextyear = ((get-date).Year) +1
+    $checkdateend = Get-PatchTuesday -Month '1' -Year  $nextyear
 }
 else
 {
-	$checkdateend = $patchtuesdayNextMonth.ToShortDateString()
+    $checkdateend = $patchtuesdayNextMonth.ToShortDateString()
 }
 
 $TitleDate = get-date -DisplayHint Date
 
 #check if script should run or not
-if ($todayDefault.Month -in $DisableReport)
+if($todayDefault.Month -in $DisableReport)
 {
-	Write-Log -LogString "======================== $scriptname - This month is skipped =============================="
+    Write-Log -LogString "======================== $scriptname - This month is skipped =============================="
 	Write-Log -LogString "============================ $scriptname - script exit =================================="
 	set-location $PSScriptRoot
 	exit
@@ -123,102 +165,110 @@ if ($todayDefault.Month -in $DisableReport)
 
 
 # Loop over selected nodes
-foreach ($Node in $ParametersNode)
-{
-	
-	$deploymentIDtoCheck = $node.DeploymentID
-	$DaysAfterPatchTuesdayToReport = $node.Offsetdays
-	$ReportdayCompare = ($patchtuesdayThisMonth.AddDays($DaysAfterPatchTuesdayToReport)).tostring("yyyy-MM-dd")
-	$GroupToRun = $node.Description
-	
-	Write-Log -LogString "========================================== $GroupToRun ================================================="
-	
+foreach($Node in $ParametersNode){
+$HTMLfilepath = $xml.Configuration.HTMLfilePath 
+
+$DescToFile = $node.Description
+$filename = $DescToFile + "_UpdateStatus_" + $filedate + ".HTML"
+$HTMLFileSavePath = "$HTMLfilepath\$filename" # Path to attached file
+
+$deploymentIDtoCheck = $node.DeploymentID
+$DaysAfterPatchTuesdayToReport = $node.Offsetdays
+$ReportdayCompare = ($patchtuesdayThisMonth.AddDays($DaysAfterPatchTuesdayToReport)).tostring("yyyy-MM-dd")
+$GroupToRun = $node.Description
+
+Write-Log -LogString "========================================== $GroupToRun ================================================="
+
 <#
 	===========================================================================		
 	Collect data from Deployment
 	===========================================================================
 #>
+
+$ResultColl = @()
+
+if ($todayshort -eq $ReportdayCompare)
+
+{
+    Write-Log -LogString "$scriptname - Script starts to collect data"
+	$UpdateStatus = Get-SCCMSoftwareUpdateStatus -DeploymentID $deploymentIDtoCheck
 	
-	$ResultColl = @()
+	foreach ($US in $UpdateStatus)
 	
-	if ($todayshort -eq $ReportdayCompare)
-	{
-		Write-Log -LogString "$scriptname - Script starts to collect data"
-		$UpdateStatus = Get-SCCMSoftwareUpdateStatus -DeploymentID $deploymentIDtoCheck
-		
-		foreach ($US in $UpdateStatus)
-		{
-			$object = New-Object -TypeName PSObject
-			$object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $us.DeviceName
-			$object | Add-Member -MemberType NoteProperty -Name 'Collection' -Value $us.CollectionName
-			$object | Add-Member -MemberType NoteProperty -Name 'Status' -Value $us.Status
-			$object | Add-Member -MemberType NoteProperty -Name 'StatusTid' -Value $us.StatusTime
-			
-			$resultColl += $object
-		}
-	}
-	
-	else
-	{
-		Write-Log -LogString "$scriptname - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
-	}
-	
+        {
+        $object = New-Object -TypeName PSObject
+        		$object | Add-Member -MemberType NoteProperty -Name 'Server' -Value $us.DeviceName
+        		$object | Add-Member -MemberType NoteProperty -Name 'Collection' -Value $us.CollectionName
+        		$object | Add-Member -MemberType NoteProperty -Name 'Status' -Value $us.Status
+        		$object | Add-Member -MemberType NoteProperty -Name 'StatusTid' -Value $us.StatusTime
+        		
+        		$resultColl += $object
+        }
+}
+
+else
+
+{
+    Write-Log -LogString "$scriptname - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
+}
+
 }
 
 if ($ResultColl -gt $null)
-{
-	
-	# Create vaules to the report
-	
-	$errorUnknownvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'error' -or $_.status -eq 'unknown' -or $_.status -eq 'Inprogress') }).count
-	$successvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'success') }).count
-	$ToCheck = $UpdateStatus | Where-Object { ($_.status -eq 'error' -or $_.status -eq 'unknown' -or $_.status -eq 'Inprogress') } | ConvertTo-Html
-	$colletionname = $UpdateStatus.collectionname | Select-Object -First 1
-	
+
+    {
+    
+    # Create vaules to the report
+    
+    $errorUnknownvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'error' -or $_.status -eq 'unknown' -or $_.status -eq 'Inprogress') }).count
+    $successvalue = ($UpdateStatus | Where-Object { ($_.status -eq 'success') }).count
+    $ToCheck = $UpdateStatus | Where-Object { ($_.status -eq 'error' -or $_.status -eq 'unknown' -or $_.status -eq 'Inprogress') } | ConvertTo-Html
+    $colletionname = $UpdateStatus.collectionname | Select-Object -First 1
+    
     <#
 	===========================================================================		
 	HTML-time, create the report
 	===========================================================================
     #>
+    
+    New-HTML -TitleText "Uppdatering Status - Kriminalvσrden" -FilePath $HTMLFileSavePath -ShowHTML -Online {
 	
-	New-HTML -TitleText "Uppdatering Status - Kriminalvσrden" -FilePath $HTMLFileSavePath -ShowHTML -Online {
-		
-		New-HTMLHeader {
-			New-HTMLSection -Invisible {
-				New-HTMLPanel -Invisible {
-					New-HTMLText -Text "Kriminalvσrden - UpdateStatus" -FontSize 35 -Color Darkblue -FontFamily Arial -Alignment center
-					New-HTMLHorizontalLine
-				}
-			}
-		}
-		New-HTMLSection -Invisible -Title "UpdateStatus $filedate"{
-			
-			New-HTMLPanel {
-				New-HTMLChart {
-					New-ChartLegend -LegendPosition bottom -HorizontalAlign right -Color red, darkgreen -DisableOnItemClickToggleDataSeries -DisableOnItemHoverHighlightDataSeries
-					New-ChartAxisY -LabelMaxWidth 100 -LabelAlign left -Show -LabelFontColor red, darkgreen -TitleText 'Status' -TitleColor Red
-					New-ChartBarOptions -Distributed
-					New-ChartBar -Name 'Needs attention' -Value $errorUnknownvalue
-					New-ChartBar -name 'Success' -Value $successvalue
-				} -Title 'Resultat av patchning' -TitleAlignment center -SubTitle $colletionname -SubTitleAlignment center -SubTitleFontSize 20 -TitleColor Darkblue
-			}
-		}
-		
-		New-HTMLSection -Invisible -Title "UpdateStatus $filedate"{
-			
-			New-HTMLTable -DataTable $resultColl -PagingLength 25 -Style compact
-		}
-		New-HTMLFooter {
-			New-HTMLSection -Invisible {
-				New-HTMLPanel -Invisible {
-					New-HTMLHorizontalLine
-					New-HTMLText -Text "Denna lista skapades $today" -FontSize 20 -Color Darkblue -FontFamily Arial -Alignment center -FontStyle italic
-				}
+	New-HTMLHeader {
+		New-HTMLSection -Invisible {
+			New-HTMLPanel -Invisible {
+				New-HTMLText -Text "Kriminalvσrden - UpdateStatus" -FontSize 35 -Color Darkblue -FontFamily Arial -Alignment center
+				New-HTMLHorizontalLine
 			}
 		}
 	}
+	New-HTMLSection -Invisible -Title "UpdateStatus $filedate"{
+		
+		New-HTMLPanel {
+			New-HTMLChart {
+				New-ChartLegend -LegendPosition bottom -HorizontalAlign right -Color red, darkgreen -DisableOnItemClickToggleDataSeries -DisableOnItemHoverHighlightDataSeries
+				New-ChartAxisY -LabelMaxWidth 100 -LabelAlign left -Show -LabelFontColor red, darkgreen -TitleText 'Status' -TitleColor Red
+				New-ChartBarOptions -Distributed
+				New-ChartBar -Name 'Needs attention' -Value $errorUnknownvalue
+                New-ChartBar -name 'Success' -Value $successvalue
+			} -Title 'Resultat av patchning' -TitleAlignment center -SubTitle $colletionname -SubTitleAlignment center -SubTitleFontSize 20 -TitleColor Darkblue
+		}
+	}
 	
-	$Body = @"
+	New-HTMLSection -Invisible -Title "UpdateStatus $filedate"{
+		
+		New-HTMLTable -DataTable $resultColl -PagingLength 25 -Style compact
+	}
+	New-HTMLFooter {
+		New-HTMLSection -Invisible {
+			New-HTMLPanel -Invisible {
+				New-HTMLHorizontalLine
+				New-HTMLText -Text "Denna lista skapades $today" -FontSize 20 -Color Darkblue -FontFamily Arial -Alignment center -FontStyle italic
+			}
+		}
+	}
+    }
+    
+    $Body = @"
 <!doctype html>
 <html>
 <head>
@@ -291,88 +341,90 @@ SRC="data:image/jpg;base64,/9j/4AAQSkZJRgABAQEAWgBaAAD/4gKwSUNDX1BST0ZJTEUAAQEAA
 </html>
 
 "@
-	
+    
     <#
 	===========================================================================		
 	Mailsettings
 	===========================================================================
     #>
-	
-	#use secure connection if available ([bool], optional)
-	$UseSecureConnectionIfAvailable = $false
-	
-	#authentication ([System.Management.Automation.PSCredential], optional)
-	$Credential = [System.Management.Automation.PSCredential]::new("Username", (ConvertTo-SecureString -String "Password" -AsPlainText -Force))
-	
-	#SMTP server ([string], required)
-	$SMTPServer = $SMTP
-	
-	#port ([int], required)
-	$Port = $MailPortnumber
-	
-	#sender ([MimeKit.MailboxAddress] http://www.mimekit.net/docs/html/T_MimeKit_MailboxAddress.htm, required)
-	$From = [MimeKit.MailboxAddress]$MailFrom
-	
-	#recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
-	$RecipientList = [MimeKit.InternetAddressList]::new()
-	
-	$recipientlistXML = $xml.Configuration.Recipients | ForEach-Object { $_.Recipients.Email }
-	
-	foreach ($Recipient in $recipientlistXML)
-	{
-		$RecipientList.Add([MimeKit.InternetAddress]$Recipient)
-	}
-	
-	#cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
-	#$CCList=[MimeKit.InternetAddressList]::new()
-	#$CCList.Add([MimeKit.InternetAddress]$EmailToCC)
-	
-	#bcc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
-	#$BCCList = [MimeKit.InternetAddressList]::new()
-	#$BCCList.Add([MimeKit.InternetAddress]"BCCRecipient1EmailAddress")
-	
-	#subject ([string], required)
-	$Subject = [String]"Serverpatchning $MailCustomer $monthname $year - $colletionname"
-	
-	#text body ([string], optional)
-	#$TextBody=[string]"TextBody"
-	
-	#HTML body ([string], optional)
-	$HTMLBody = [String]$Body
-	
-	#attachment list ([System.Collections.Generic.List[string]], optional)
-	$AttachmentList = [System.Collections.Generic.List`1[[System.String, mscorlib, Version = 4.0.0.0, Culture = neutral, PublicKeyToken=b77a5c561934e089]]]::new()
-	$AttachmentList.Add("$HTMLFileSavePath")
-	#$AttachmentList.Add("$CSVFileSavePath")
-	
-	# Mailparameters
-	$Parameters = @{
-		"UseSecureConnectionIfAvailable" = $UseSecureConnectionIfAvailable
-		#"Credential"=$Credential
-		"SMTPServer"					 = $SMTPServer
-		"Port"						     = $Port
-		"From"						     = $From
-		"RecipientList"				     = $RecipientList
-		#"CCList"=$CCList
-		#"BCCList"=$BCCList
-		"Subject"					     = $Subject
-		#"TextBody"=$TextBody
-		"HTMLBody"					     = $HTMLBody
-		"AttachmentList"				 = $AttachmentList
-	}
-	
-	Write-Log -LogString "=============================== Sending mail ====================================="
-	Write-Log -LogString "$scriptname - Script send mail to $RecipientList"
-	Write-Log -LogString "============================ $scriptname - script exit =================================="
-	#Send-MailKitMessage @Parameters
-	
-	set-location $PSScriptRoot
-	
-}
+    
+    #use secure connection if available ([bool], optional)
+    $UseSecureConnectionIfAvailable = $false
+    
+    #authentication ([System.Management.Automation.PSCredential], optional)
+    $Credential = [System.Management.Automation.PSCredential]::new("Username", (ConvertTo-SecureString -String "Password" -AsPlainText -Force))
+    
+    #SMTP server ([string], required)
+    $SMTPServer = $SMTP
+    
+    #port ([int], required)
+    $Port = $MailPortnumber
+    
+    #sender ([MimeKit.MailboxAddress] http://www.mimekit.net/docs/html/T_MimeKit_MailboxAddress.htm, required)
+    $From = [MimeKit.MailboxAddress]$MailFrom
+    
+    #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
+    $RecipientList = [MimeKit.InternetAddressList]::new()
+    
+    $recipientlistXML = $xml.Configuration.Recipients | ForEach-Object {$_.Recipients.Email}
+    
+    foreach ($Recipient in $recipientlistXML)
+    
+        {
+            $RecipientList.Add([MimeKit.InternetAddress]$Recipient)
+        }
+    
+    #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
+    #$CCList=[MimeKit.InternetAddressList]::new()
+    #$CCList.Add([MimeKit.InternetAddress]$EmailToCC)
+    
+    #bcc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
+    #$BCCList = [MimeKit.InternetAddressList]::new()
+    #$BCCList.Add([MimeKit.InternetAddress]"BCCRecipient1EmailAddress")
+    
+    #subject ([string], required)
+    $Subject = [String]"Serverpatchning $MailCustomer $monthname $year - $colletionname"
+    
+    #text body ([string], optional)
+    #$TextBody=[string]"TextBody"
+    
+    #HTML body ([string], optional)
+    $HTMLBody = [String]$Body
+    
+    #attachment list ([System.Collections.Generic.List[string]], optional)
+    $AttachmentList = [System.Collections.Generic.List`1[[System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]]::new()
+    $AttachmentList.Add("$HTMLFileSavePath")
+    #$AttachmentList.Add("$CSVFileSavePath")
+    
+    # Mailparameters
+    $Parameters = @{
+    	"UseSecureConnectionIfAvailable" = $UseSecureConnectionIfAvailable
+    	#"Credential"=$Credential
+    	"SMTPServer"					 = $SMTPServer
+    	"Port"						     = $Port
+    	"From"						     = $From
+    	"RecipientList"				     = $RecipientList
+    	#"CCList"=$CCList
+    	#"BCCList"=$BCCList
+    	"Subject"					     = $Subject
+    	#"TextBody"=$TextBody
+    	"HTMLBody"					     = $HTMLBody
+    	"AttachmentList"				 = $AttachmentList
+    }
+    
+    Write-Log -LogString "=========================================== Sending mail ==============================================="
+    Write-Log -LogString "$scriptname - Script send mail to $RecipientList"
+    Write-Log -LogString "================================= $scriptname - script exit ===================================="
+    Send-MailKitMessage @Parameters
+    
+    set-location $PSScriptRoot
+    
+    }
 
 else
+
 {
-	Write-Log -LogString "================================= Scriptrunday not equal with xmlfile for deployment ==============================="
-	Write-Log -LogString "============================ $scriptname - script exit =================================="
-	set-location $PSScriptRoot
+    Write-Log -LogString "================================= Scriptrunday not equal with xmlfile for deployment ===============================" 
+    Write-Log -LogString "================================= $scriptname - script exit ===================================="
+    set-location $PSScriptRoot
 }
