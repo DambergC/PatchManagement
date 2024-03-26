@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Configuration>
 	<Logfile>
 		<Path>G:\Scripts\Logfiles\</Path>
@@ -9,7 +9,7 @@
 	<RunScript>
 		<Job DeploymentID="16777362" Offsetdays="2" Description="Grupp100"/>
 		<Job DeploymentID="16777363" Offsetdays="8" Description="Grupp200"/>
-		<Job DeploymentID="16777364" Offsetdays="14" Description="Grupp300"/>
+		<Job DeploymentID="16777364" Offsetdays="15" Description="Grupp300"/>
 	</RunScript>
 	<DisableReportMonth>
 		<DisableReportMonth Number=""/>
@@ -18,15 +18,21 @@
 	</DisableReportMonth>
 	<Recipients>
 		<Recipients email="christian.damberg@kriminalvarden.se"/>
+		<Recipients email="Joakim.Stenqvist@kriminalvarden.se"/>
 		<Recipients email="Julia.Hultkvist@kriminalvarden.se"/>
 		<Recipients email="Christian.Brask@kriminalvarden.se"/>
 		<Recipients email="lars.garlin@kriminalvarden.se"/>
 		<Recipients email="sockv@kriminalvarden.se"/>
 		<Recipients email="Tim.Gustavsson@kriminalvarden.se"/>
 	</Recipients>
+	<UpdateDeployed>
+		<LimitDays>-25</LimitDays>
+		<UpdateGroupName>Server Patch Tuesday</UpdateGroupName>
+		<DaysAfterPatchToRun>1</DaysAfterPatchToRun>
+	</UpdateDeployed>
 	<SiteServer>vntsql0299</SiteServer>
 	<Mailfrom>no-reply@kvv.se</Mailfrom>
 	<MailSMTP>smtp.kvv.se</MailSMTP>
 	<MailPort>25</MailPort>
-	<MailCustomer>Kriminalvården - IT</MailCustomer>
+	<MailCustomer>Kriminalvarden - IT</MailCustomer>
 </Configuration>
