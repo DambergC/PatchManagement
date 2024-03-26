@@ -18,7 +18,7 @@
 	</DisableReportMonth>
 	<Recipients>
 		<Recipients email="user1@company.com"/>
-		<Recipients email="user1@company.com"/>
+		<Recipients email="user2@company.com"/>
 	</Recipients>
 	<UpdateDeployed>
 		<LimitDays>-25</LimitDays>
