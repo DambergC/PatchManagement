@@ -17,6 +17,11 @@ The first file in the folder is "scriptconfig.xml" which contains everything the
 | UpdateDeployed\LimitDays | Number of days back in time to check for published updates from Microsoft |
 | UpdateDeployed\UpdateGroupName | The name on the UpdateGroup where you deployed the updates |
 | UpdateDeployed\DaysAfterPatchToRun | Number of days after Patch Tuesday to run the script |
+| SiteServer | siteservername |
+| MailFrom | noreplyaddress |
+| MsilSMTP | smtp-address |
+| MailPort | Mailport |
+| MailCustomer | Companyname |
 
 ## Send-WindowsUpdateDeployed.ps1
 This script runs a check against an Update Group in ConfigMgr and retrieves all patches that have been published in the last x-numbers of days (the value is in scriptconfig.xml)
