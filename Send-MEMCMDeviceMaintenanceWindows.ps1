@@ -28,7 +28,7 @@ $scriptname = $MyInvocation.MyCommand.Name
 $siteserver = 'vntsql0299'
 $dbserver = 'VNTSQL0310'
 $DaysAfterPatchTuesdayToReport = '-6'
-#$DaysAfterPatchTuesdayToReport = '9'
+#$DaysAfterPatchTuesdayToReport = '2'
 $DisableReport = ""
 
 $filedate = get-date -Format yyyMMdd
@@ -37,12 +37,13 @@ $CSVFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.csv"
 $SMTP = 'smtp.kvv.se'
 $MailFrom = 'no-reply@kvv.se'
 $MailTo1 = 'christian.damberg@kriminalvarden.se'
-#$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
-#$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
-#$mailto4 = 'Christian.Brask@kriminalvarden.se'
-#$mailto5 = 'lars.garlin@kriminalvarden.se'
-#$MailTo6 = 'sockv@kriminalvarden.se'
-#$mailto7 = 'Tim.Gustavsson@kriminalvarden.se'
+$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
+$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
+$mailto4 = 'Christian.Brask@kriminalvarden.se'
+$mailto5 = 'lars.garlin@kriminalvarden.se'
+$MailTo6 = 'sockv@kriminalvarden.se'
+$mailto7 = 'Tim.Gustavsson@kriminalvarden.se'
+$mailto8 = 'Hans.Pettersson@kriminalvarden.se'
 $MailPortnumber = '25'
 $MailCustomer = 'Kriminalvården - IT'
 $collectionidToCheck = 'KV1000B0'
@@ -147,35 +148,31 @@ Set-Location $SetSiteCode
 	===========================================================================
 #>
 
+
 $todayDefault = Get-Date
 $todayshort = $todayDefault.ToShortDateString()
 $thismonth = $todaydefault.Month
 $nextmonth = $todaydefault.Month + 1
 $patchtuesdayThisMonth = Get-PatchTuesday -Month $thismonth -Year $todayDefault.Year
-$patchtuesdayNextMonth = Get-PatchTuesday -Month $nextmonth -Year $todayDefault.Year
-$ReportdayCompare = ($patchtuesdayThisMonth.AddDays($DaysAfterPatchTuesdayToReport)).tostring("yyyy-MM-dd")
+$checkdatestart = $patchtuesdayThisMonth.ToShortDateString()
+$ReportdayCompare = $patchtuesdayThisMonth.AddDays($DaysAfterPatchTuesdayToReport)
+$ReportdayCompareShort = $ReportdayCompare.ToShortDateString()
+
+
+#Write-Log -LogString "TEST $test"
 
 $nextyear = $todayDefault.Year + 1
 If ($nextmonth = '13')
 {
     $nextmonth = '1'
-    
-}
-$checkdatestart = $patchtuesdayThisMonth.ToShortDateString()
-
-
-If ($nextmonth = '13')
-{
     $nextyear = ((get-date).Year) +1
+    $patchtuesdayNextMonth = Get-PatchTuesday -Month $nextmonth -Year $nextyear
+    $checkdateend = $patchtuesdayNextMonth.ToShortDateString()
     
-    $checkdateend = Get-PatchTuesday -Month '1' -Year  $nextyear
 }
 
-else
-{
-$checkdateend = $patchtuesdayNextMonth.ToShortDateString()
 
-}
+
 
 
 
@@ -201,15 +198,15 @@ if($todayDefault.Month -in $DisableReport)
 
 #Region Script part 1 collect info from selected collection and check devices membership in Collections with Maintenance Windows
 
-if ($todayshort -eq $ReportdayCompare)
+if ($todayshort -eq $ReportdayCompareShort)
 {
 	# Array to collect data in
 	$ResultColl = @()
 	$ResultMissing = @()
 	# Devices
-
+Write-Log -LogString "$scriptname - Date is correct, will run script"
     $devices = Get-CMCollectionMember -CollectionId $collectionidToCheck
-	Write-Log -LogString "$scriptname - Date is correct, will run script"
+	
 	# For the progressbar
 	$complete = 0
 	
@@ -303,7 +300,7 @@ if ($todayshort -eq $ReportdayCompare)
 
 else
 {
-	Write-Log -LogString "$scriptname - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompare"
+	Write-Log -LogString "$scriptname - Date not equal patchtuesday $checkdatestart and its now $todayshort. This report will run $ReportdayCompareShort"
 	Write-Log -LogString "$scriptname - Script exit!"
     
 	set-location $PSScriptRoot
@@ -472,12 +469,13 @@ $From = [MimeKit.MailboxAddress]$MailFrom
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList = [MimeKit.InternetAddressList]::new()
 $RecipientList.Add([MimeKit.InternetAddress]$MailTo1)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
-#$RecipientList.Add([MimeKit.InternetAddress]$mailto3)
-#$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
-#$RecipientList.Add([MimeKit.InternetAddress]$mailto5)
-#$RecipientList.add([MimeKit.InternetAddress]$mailto6)
-#$RecipientList.add([MimeKit.InternetAddress]$mailto7)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
+$RecipientList.Add([MimeKit.InternetAddress]$mailto3)
+$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
+$RecipientList.Add([MimeKit.InternetAddress]$mailto5)
+$RecipientList.add([MimeKit.InternetAddress]$mailto6)
+$RecipientList.add([MimeKit.InternetAddress]$mailto7)
+$RecipientList.add([MimeKit.InternetAddress]$mailto8)
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
 #$CCList.Add([MimeKit.InternetAddress]$EmailToCC)
