@@ -25,7 +25,10 @@ These script and functions are tested in my environment and it is recommended th
 $scriptversion = '1.0'
 $scriptname = $MyInvocation.MyCommand.Name
 
-$siteserver = 'vntsql0299'
+[System.Xml.XmlDocument]$xml = Get-Content .\ScriptConfig.xml
+
+
+$siteserver = $xml.Configuration.SiteServer
 $dbserver = 'VNTSQL0310'
 $DaysAfterPatchTuesdayToReport = '-6'
 #$DaysAfterPatchTuesdayToReport = '2'
@@ -34,18 +37,10 @@ $DisableReport = ""
 $filedate = get-date -Format yyyMMdd
 $HTMLFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.HTML"
 $CSVFileSavePath = "G:\Scripts\Outfiles\KVV_MW_$filedate.csv"
-$SMTP = 'smtp.kvv.se'
-$MailFrom = 'no-reply@kvv.se'
-$MailTo1 = 'christian.damberg@kriminalvarden.se'
-$MailTo2 = 'Joakim.Stenqvist@kriminalvarden.se'
-$mailto3 = 'Julia.Hultkvist@kriminalvarden.se'
-$mailto4 = 'Christian.Brask@kriminalvarden.se'
-$mailto5 = 'lars.garlin@kriminalvarden.se'
-$MailTo6 = 'sockv@kriminalvarden.se'
-$mailto7 = 'Tim.Gustavsson@kriminalvarden.se'
-$mailto8 = 'Hans.Pettersson@kriminalvarden.se'
-$MailPortnumber = '25'
-$MailCustomer = 'Kriminalvården - IT'
+$SMTP = $xml.Configuration.MailSMTP
+$MailFrom = $xml.Configuration.Mailfrom
+$MailPortnumber = $xml.Configuration.MailPort
+$MailCustomer = $xml.Configuration.MailCustomer
 $collectionidToCheck = 'KV1000B0'
 
 $Logfile = "G:\Scripts\Logfiles\WindowsUpdateScript.log"
@@ -161,12 +156,24 @@ $ReportdayCompareShort = $ReportdayCompare.ToShortDateString()
 
 #Write-Log -LogString "TEST $test"
 
-$nextyear = $todayDefault.Year + 1
-If ($nextmonth = '13')
+#$nextyear = $todayDefault.Year + 1
+If ($nextmonth -eq 13)
 {
     $nextmonth = '1'
     $nextyear = ((get-date).Year) +1
     $patchtuesdayNextMonth = Get-PatchTuesday -Month $nextmonth -Year $nextyear
+    $checkdateend = $patchtuesdayNextMonth.ToShortDateString()
+    
+}
+else
+
+{
+    $todayDefault = Get-Date
+    $todayshort = $todayDefault.ToShortDateString()
+    $thismonth = $todaydefault.Month
+    $nextmonth = $todaydefault.Month + 1
+    $thisYear = ((get-date).Year)
+    $patchtuesdayNextMonth = Get-PatchTuesday -Month $nextmonth -Year $thisyear
     $checkdateend = $patchtuesdayNextMonth.ToShortDateString()
     
 }
@@ -468,14 +475,14 @@ $From = [MimeKit.MailboxAddress]$MailFrom
 
 #recipient list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, required)
 $RecipientList = [MimeKit.InternetAddressList]::new()
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo1)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo2)
-$RecipientList.Add([MimeKit.InternetAddress]$mailto3)
-$RecipientList.Add([MimeKit.InternetAddress]$MailTo4)
-$RecipientList.Add([MimeKit.InternetAddress]$mailto5)
-$RecipientList.add([MimeKit.InternetAddress]$mailto6)
-$RecipientList.add([MimeKit.InternetAddress]$mailto7)
-$RecipientList.add([MimeKit.InternetAddress]$mailto8)
+    
+    $recipientlistXML = $xml.Configuration.Recipients | ForEach-Object {$_.Recipients.Email}
+    
+    foreach ($Recipient in $recipientlistXML)
+    
+        {
+            $RecipientList.Add([MimeKit.InternetAddress]$Recipient)
+        }
 #cc list ([MimeKit.InternetAddressList] http://www.mimekit.net/docs/html/T_MimeKit_InternetAddressList.htm, optional)
 #$CCList=[MimeKit.InternetAddressList]::new()
 #$CCList.Add([MimeKit.InternetAddress]$EmailToCC)
