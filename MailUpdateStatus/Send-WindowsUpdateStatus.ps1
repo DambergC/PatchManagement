@@ -17,7 +17,13 @@
 		===========================================================================
 #>
 
-[System.Xml.XmlDocument]$xml = Get-Content .\ScriptConfig.xml
+try {
+    $xml = [System.Xml.XmlDocument]::new()
+    $xml.Load(".\ScriptConfig.xml")
+} catch {
+    Write-Log -LogString "Error loading XML file: $_"
+    exit 1
+}
 
 $Logfilepath = $xml.Configuration.Logfile.Path
 $logfilename = $xml.Configuration.Logfile.Name
@@ -41,16 +47,19 @@ function Rotate-Log {
 
     foreach ($file in $target) {
         if ($file.Length -ge $Logfilethreshold) {
-            Write-Log -LogString "Rotating log file: $($file.Name)"
-            $newName = "$($file.BaseName)_${datetime}.log"
-            Rename-Item -Path $file.FullName -NewName $newName
+            try {
+                $newName = "$($file.BaseName)_${datetime}.log"
+                $oldLogPath = Join-Path $Logfilepath "OLDLOG"
 
-            $oldLogPath = Join-Path $Logfilepath "OLDLOG"
-            if (-not (Test-Path $oldLogPath)) {
-                New-Item -Path $oldLogPath -ItemType Directory
+                if (-not (Test-Path $oldLogPath)) {
+                    New-Item -Path $oldLogPath -ItemType Directory | Out-Null
+                }
+
+                Move-Item -Path $file.FullName -Destination $oldLogPath
+                Write-Log -LogString "Rotated log file: $($file.Name)"
+            } catch {
+                Write-Log -LogString "Failed to rotate log file $($file.Name): $_"
             }
-            Move-Item -Path $newName -Destination $oldLogPath
-            Write-Log -LogString "Log file rotated successfully."
         } else {
             Write-Log -LogString "Log file $($file.Name) does not need rotation."
         }
@@ -59,16 +68,18 @@ function Rotate-Log {
 
 Rotate-Log
 
-Function Write-Log
-    {
+Function Write-Log {
     param (
         [String]$LogString
-        )
-    
-    $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
+    )
+    $Stamp = (Get-Date).ToString("yyyy/MM/dd HH:mm:ss")
     $LogMessage = "$Stamp $LogString"
-    Add-content $LogFile -value $LogMessage
+    try {
+        Add-Content $LogFile -Value $LogMessage
+    } catch {
+        Write-Host "Failed to write log: $_"
     }
+}
 
 Function Get-CMSiteCode
     {
@@ -76,19 +87,24 @@ Function Get-CMSiteCode
     	return $CMSiteCode
     }
 
-# Send-MailkitMessage - https://github.com/austineric/Send-MailKitMessage
-if (-not (Get-Module -name send-mailkitmessage))
-    {
-        #Install-Module send-mailkitmessage -ErrorAction SilentlyContinue
-    	Import-Module send-mailkitmessage
+Function Ensure-Module {
+    param (
+        [string]$ModuleName
+    )
+    if (-not (Get-Module -Name $ModuleName -ListAvailable)) {
+        try {
+            Install-Module -Name $ModuleName -Force -ErrorAction Stop
+            Import-Module -Name $ModuleName
+        } catch {
+            Write-Log -LogString "Failed to install or import module $ModuleName: $_"
+        }
+    } else {
+        Import-Module -Name $ModuleName
     }
+}
 
-# pswritehtml - https://github.com/EvotecIT/PSWriteHTML
-if (-not (Get-Module -name PSWriteHTML))
-    {
-        #Install-Module PSWriteHTML -ErrorAction SilentlyContinue
-    	Import-Module PSWriteHTML
-    }
+Ensure-Module -ModuleName "send-mailkitmessage"
+Ensure-Module -ModuleName "PSWriteHTML"
 
 # PatchManagementSupportTools - Created by Christian Damberg, Cygate
 # https://github.com/DambergC/PatchManagement/tree/main/PatchManagementSupportTools
