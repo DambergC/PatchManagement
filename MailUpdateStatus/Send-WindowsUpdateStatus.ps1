@@ -35,41 +35,27 @@ $MailFrom = $xml.Configuration.Mailfrom
 $MailPortnumber = $xml.Configuration.MailPort
 $MailCustomer = $xml.Configuration.MailCustomer
 
-function Rotate-Log 
-    {
-        $target = Get-ChildItem $Logfilepath -Filter "windo*.log"
-        $datetime = Get-Date -uformat "%Y-%m-%d-%H%M"
-        
-        $target | ForEach-Object {
-            
-            if ($_.Length -ge $Logfilethreshold) 
-            { 
-                Write-Host "file named $($_.name) is bigger than $Logfilethreshold B"
-                $newname = "$($_.BaseName)_${datetime}.log"
-                Rename-Item $_.fullname $newname
+function Rotate-Log {
+    $target = Get-ChildItem -Path $Logfilepath -Filter "windo*.log"
+    $datetime = Get-Date -uformat "%Y-%m-%d-%H%M"
 
-                    if (test-path "$Logfilepath\OLDLOG") 
-                    {
-                        Move-Item .\logfiles\$newname -Destination "$Logfilepath\OLDLOG"
-                        Write-Host "Done rotating file"
-                    }
+    foreach ($file in $target) {
+        if ($file.Length -ge $Logfilethreshold) {
+            Write-Log -LogString "Rotating log file: $($file.Name)"
+            $newName = "$($file.BaseName)_${datetime}.log"
+            Rename-Item -Path $file.FullName -NewName $newName
 
-                    else
-
-                    {
-                        new-item -Path $Logfilepath -Name OLDLOG -ItemType Directory
-                        Move-Item .\logfiles\$newname -Destination "$Logfilepath\OLDLOG"
-                        Write-Host "Done rotating file"
-                    }
-             }
-            
-            else
-                {
-                     Write-Host "file named $($_.name) is not bigger than $Logfilethreshold B"
-                }
-            Write-Host "Logfile checked!"
+            $oldLogPath = Join-Path $Logfilepath "OLDLOG"
+            if (-not (Test-Path $oldLogPath)) {
+                New-Item -Path $oldLogPath -ItemType Directory
+            }
+            Move-Item -Path $newName -Destination $oldLogPath
+            Write-Log -LogString "Log file rotated successfully."
+        } else {
+            Write-Log -LogString "Log file $($file.Name) does not need rotation."
         }
     }
+}
 
 Rotate-Log
 
@@ -86,7 +72,7 @@ Function Write-Log
 
 Function Get-CMSiteCode
     {
-        $CMSiteCode = Get-WmiObject -Namespace "root\SMS" -Class SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
+        $CMSiteCode = Get-CimInstance -Namespace "root\SMS" -ClassName SMS_ProviderLocation -ComputerName $SiteServer | Select-Object -ExpandProperty SiteCode
     	return $CMSiteCode
     }
 
