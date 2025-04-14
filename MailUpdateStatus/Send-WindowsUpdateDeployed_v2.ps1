@@ -1,134 +1,167 @@
-<# 
-.SYNOPSIS
-    Improved script for reporting Windows Update deployment statuses.
+<#
+    .SYNOPSIS
+        Update status for Windows updates through MECM.
 
-.DESCRIPTION
-    This script generates a report for Windows Updates based on deployments defined in a configuration file,
-    and securely sends the report via email. It includes enhancements for error handling, logging, 
-    and secure credential management.
+    .DESCRIPTION
+        The script creates a report on Windows updates for one or more deployments
+        specified in an XML file and sends an email to named recipients.
+        The script can run manually or be scheduled on the site server.
 
-.NOTES
-    Created by: Christian Damberg, Telia Cygate AB
-    Date: 2025-04-14
+    .NOTES
+        ===========================================================================
+        Created with:    SAPIEN Technologies, Inc., PowerShell Studio 2024
+        Created on:      10/16/2023 3:34 PM
+        Updated on:      04/14/2025
+        Created by:      Christian Damberg
+        Organization:    Telia Cygate AB
+        Filename:        Send-WindowsUpdateDeployed.ps1
+        Improvements:    Modularized, error-handling, logging levels, retry mechanisms, and best practices applied.
+        ===========================================================================
 #>
 
-# Load Configuration
-function Load-Configuration {
-    param (
-        [string]$ConfigFilePath = ".\ScriptConfig.xml"
-    )
-    try {
-        if (-not (Test-Path $ConfigFilePath)) {
-            throw "Configuration file not found at $ConfigFilePath"
-        }
-        [System.Xml.XmlDocument]$xml = Get-Content $ConfigFilePath
-        return $xml
-    } catch {
-        Write-Error "Failed to load configuration: $_"
-        exit 1
-    }
-}
+[System.Xml.XmlDocument]$xml = Get-Content .\ScriptConfig.xml
 
-# Initialize Logging
-function Initialize-Log {
-    param (
-        [string]$LogFilePath
-    )
-    try {
-        if (-not (Test-Path $LogFilePath)) {
-            New-Item -ItemType File -Path $LogFilePath -Force
-        }
-    } catch {
-        Write-Error "Failed to initialize log file: $_"
-        exit 1
-    }
-}
+# Configuration Variables
+$Logfilepath = $xml.Configuration.Logfile.Path
+$logfilename = $xml.Configuration.Logfile.Name
+$LogFile = Join-Path $Logfilepath $logfilename
+$Logfilethreshold = $xml.Configuration.Logfile.Logfilethreshold
+$SMTP = $xml.Configuration.MailSMTP
+$MailFrom = $xml.Configuration.Mailfrom
+$MailPortnumber = $xml.Configuration.MailPort
+$MailCustomer = $xml.Configuration.MailCustomer
+$LimitDays = $xml.Configuration.UpdateDeployed.LimitDays
+$DaysAfterPatchTuesdayToReport = $xml.Configuration.UpdateDeployed.DaysAfterPatchToRun
+$UpdateGroupName = $xml.Configuration.UpdateDeployed.UpdateGroupName
 
+# Logging Function with Levels
 function Write-Log {
     param (
-        [string]$LogFile,
-        [string]$LogString
+        [string]$LogString,
+        [ValidateSet("INFO", "WARN", "ERROR")] [string]$LogLevel = "INFO"
     )
     $Stamp = (Get-Date).ToString("yyyy/MM/dd HH:mm:ss")
-    $LogMessage = "$Stamp $LogString"
+    $LogMessage = "$Stamp [$LogLevel] $LogString"
     Add-Content $LogFile -Value $LogMessage
 }
 
-# Rotate Logs
+# Rotate Logs with Error Handling
 function Rotate-Log {
-    param (
-        [string]$LogFilePath,
-        [int]$LogFileThreshold
-    )
     try {
-        $target = Get-ChildItem $LogFilePath -Filter "*.log"
-        $datetime = Get-Date -UFormat "%Y-%m-%d-%H%M"
+        $target = Get-ChildItem $Logfilepath -Filter "windo*.log"
+        $datetime = Get-Date -uformat "%Y-%m-%d-%H%M"
 
         foreach ($file in $target) {
-            if ($file.Length -ge $LogFileThreshold) {
-                $newName = "$($file.BaseName)_${datetime}.log"
-                Rename-Item $file.FullName $newName -ErrorAction Stop
-                Move-Item $newName -Destination "$LogFilePath\OLDLOG" -ErrorAction Stop
-                Write-Log -LogFile "$LogFilePath\Logfile.log" -LogString "Rotated log file: $file.Name"
+            if ($file.Length -ge $Logfilethreshold) {
+                Write-Log -LogString "Rotating log file: $($file.Name)" -LogLevel INFO
+                $newname = "$($file.BaseName)_${datetime}.log"
+                Rename-Item $file.FullName $newname
+                $oldLogDir = Join-Path $Logfilepath "OLDLOG"
+                if (-not (Test-Path $oldLogDir)) {
+                    New-Item -Path $oldLogDir -ItemType Directory
+                }
+                Move-Item $newname -Destination $oldLogDir
             }
         }
     } catch {
-        Write-Error "Failed to rotate logs: $_"
+        Write-Log -LogString "Error during log rotation: $_" -LogLevel ERROR
     }
 }
 
-# Send Email
-function Send-Email {
+# Retry Mechanism for Email Sending
+function Send-EmailWithRetry {
     param (
-        [string]$SMTPServer,
-        [int]$Port,
-        [string]$From,
-        [string]$To,
-        [string]$Subject,
-        [string]$Body,
-        [string]$Attachment = $null
+        [hashtable]$Parameters,
+        [int]$MaxRetries = 3,
+        [int]$RetryDelaySeconds = 5
     )
-    try {
-        $Parameters = @{
-            SMTPServer = $SMTPServer
-            Port = $Port
-            From = $From
-            To = $To
-            Subject = $Subject
-            Body = $Body
-            Attachment = $Attachment
+    $attempt = 0
+    do {
+        try {
+            Send-MailKitMessage @Parameters
+            Write-Log -LogString "Email sent successfully on attempt $($attempt + 1)" -LogLevel INFO
+            break
+        } catch {
+            $attempt++
+            Write-Log -LogString "Failed to send email on attempt $attempt. Retrying... $_" -LogLevel WARN
+            Start-Sleep -Seconds $RetryDelaySeconds
+        }
+    } while ($attempt -lt $MaxRetries)
+
+    if ($attempt -ge $MaxRetries) {
+        Write-Log -LogString "Failed to send email after $MaxRetries attempts." -LogLevel ERROR
+        throw "Email sending failed."
+    }
+}
+
+# Import Required Modules with Error Handling
+function Import-RequiredModules {
+    $modules = @(
+        "ConfigurationManager",
+        "send-mailkitmessage",
+        "PSWriteHTML",
+        "PatchManagementSupportTools"
+    )
+    foreach ($module in $modules) {
+        if (-not (Get-Module -Name $module)) {
+            try {
+                Import-Module $module -ErrorAction Stop
+                Write-Log -LogString "Module $module imported successfully." -LogLevel INFO
+            } catch {
+                Write-Log -LogString "Failed to import module: $module. $_" -LogLevel ERROR
+                throw
+            }
+        }
+    }
+}
+
+# Main Script Execution
+try {
+    Write-Log -LogString "Starting script execution." -LogLevel INFO
+
+    # Import Required Modules
+    Import-RequiredModules
+
+    # Rotate Logs
+    Rotate-Log
+
+    # Determine Report Day
+    $patchTuesdayThisMonth = Get-PatchTuesday -Month (Get-Date).Month -Year (Get-Date).Year
+    $ReportdayCompare = $patchTuesdayThisMonth.AddDays($DaysAfterPatchTuesdayToReport).ToString("yyyy-MM-dd")
+    if ((Get-Date).ToString("yyyy-MM-dd") -eq $ReportdayCompare) {
+        Write-Log -LogString "Script is running on the scheduled report day." -LogLevel INFO
+
+        # Collect Data
+        $updates = Get-CMSoftwareUpdate -Fast -UpdateGroupName $UpdateGroupName
+        $result = @()
+        foreach ($item in $updates) {
+            $result += [PSCustomObject]@{
+                ArticleID             = $item.ArticleID
+                Title                 = $item.LocalizedDisplayName
+                LocalizedDescription  = $item.LocalizedDescription
+                DatePosted            = $item.DatePosted
+                Deployed              = $item.IsDeployed
+                URL                   = $item.LocalizedInformativeURL
+                Severity              = $item.SeverityName
+            }
         }
 
-        # Example: Replace this with your email sending module
-        Send-MailKitMessage @Parameters
-        Write-Log -LogFile "$LogFilePath\Logfile.log" -LogString "Email sent successfully to $To"
-    } catch {
-        Write-Error "Failed to send email: $_"
+        # Prepare Email Parameters
+        $EmailParams = @{
+            "SMTPServer"    = $SMTP
+            "Port"          = $MailPortnumber
+            "From"          = [MimeKit.MailboxAddress]$MailFrom
+            "RecipientList" = [MimeKit.InternetAddressList]@()
+            "Subject"       = "WindowsUpdate $MailCustomer $((Get-Date).ToString('MMMM yyyy'))"
+            "HTMLBody"      = $result | ConvertTo-Html
+        }
+        Send-EmailWithRetry -Parameters $EmailParams
+    } else {
+        Write-Log -LogString "Not the scheduled report day. Exiting script." -LogLevel INFO
     }
-}
-
-# Main Script
-try {
-    $Config = Load-Configuration
-    $LogFilePath = $Config.Configuration.LogFile.Path
-    $LogFileThreshold = $Config.Configuration.LogFile.LogFileThreshold
-
-    Initialize-Log -LogFilePath $LogFilePath
-    Rotate-Log -LogFilePath $LogFilePath -LogFileThreshold $LogFileThreshold
-
-    # Generate Report (Placeholder)
-    $Report = "Sample Report Content"
-
-    # Email Configuration
-    $SMTPServer = $Config.Configuration.MailSMTP
-    $Port = $Config.Configuration.MailPort
-    $From = $Config.Configuration.MailFrom
-    $To = $Config.Configuration.Recipients.Recipient.Email
-    $Subject = "Windows Update Report"
-    $Body = $Report
-
-    Send-Email -SMTPServer $SMTPServer -Port $Port -From $From -To $To -Subject $Subject -Body $Body
 } catch {
-    Write-Error "An error occurred: $_"
-    exit 1
+    Write-Log -LogString "An unexpected error occurred: $_" -LogLevel ERROR
+    throw
+} finally {
+    Write-Log -LogString "Script execution completed." -LogLevel INFO
 }
