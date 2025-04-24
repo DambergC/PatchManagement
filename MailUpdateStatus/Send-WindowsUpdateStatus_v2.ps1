@@ -1,24 +1,27 @@
 <#
 .SYNOPSIS
-    Update status for Windows update through MECM.
+    Generates and sends status reports for Windows updates through MECM.
 
 .DESCRIPTION
-    This script generates a report on Windows updates for specified deployments
-    and sends an email to the configured recipients. It supports manual and scheduled execution.
+    This script collects data on Windows updates for specified deployments, generates an HTML report, and sends it via email to configured recipients. 
+    It supports both manual execution and scheduling for automated reporting.
 
 .NOTES
-    Created by: Christian Damberg
+    Author: Christian Damberg
     Organization: Telia Cygate AB
-    Filename: Send-WindowsUpdateStatus.ps1
+    Filename: Send-WindowsUpdateStatus_v2.ps1
+    Version: 2.0
+    Last Updated: 2025-04-24
 
     Prerequisites:
     - Required PowerShell Modules: send-mailkitmessage, PSWriteHTML
     - Configuration file: ScriptConfig.xml
-    - Ensure proper permissions to access all required resources.
+    - Permissions to access MECM resources and Credential Manager for SMTP credentials.
 
-    Usage:
-    - Run the script manually or schedule it with Task Scheduler.
-    - Ensure the configuration file and required modules are in place before execution.
+    Usage Instructions:
+    - Ensure the configuration file and required PowerShell modules are in place.
+    - Run the script manually or schedule it using Task Scheduler for periodic execution.
+    - Logs and archives are automatically managed based on thresholds defined in the configuration file.
 #>
 
 param (
